@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f3a56">
+<title>Advanced Timco · Taller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#eef1f4; --surface:#fff; --surface-2:#f5f7f9; --line:#d6dce3; --fg:#16202b; --muted:#5b6876;
+  --accent:#e08a00; --accent-ink:#1b1300; --steel:#1f3a56;
+  --ok:#1f7a4d; --ok-bg:#e3f3ea; --warn:#a15c00; --warn-bg:#fdf0dc; --crit:#b3261e; --crit-bg:#fbe5e3;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0f151c; --surface:#17202a; --surface-2:#1d2833; --line:#2b3846; --fg:#e7edf3; --muted:#9aa8b6;
+  --accent:#f2a531; --steel:#8fb4d9; --ok:#5cc791; --ok-bg:#163326; --warn:#f0b35a; --warn-bg:#3a2a12; --crit:#ff8a80; --crit-bg:#3d1b19; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:12px}
+h1{font-family:var(--f-display);font-size:22px;margin:0;line-height:1}
+h1 span{color:var(--accent)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.live.on .dot{background:var(--ok)}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 14px var(--f-body);padding:10px 14px;border-radius:8px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.55}
+.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.ohead:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.login{max-width:380px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:grid;gap:14px}
+.login h2{font-family:var(--f-display);font-size:28px;margin:0}
+label.lb{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px}
+input[type=email],input[type=password],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);font:16px var(--f-body);padding:11px}
+.err{color:var(--crit);font-size:14px;min-height:1em}
+.note{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+.bar2{display:flex;gap:8px;align-items:center;justify-content:space-between;padding-block:12px 4px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.chip{flex:none;appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 13px var(--f-body);padding:6px 12px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--surface)}
+.list{display:grid;gap:12px;margin:10px 0 40px}
+.orden{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.ohead{width:100%;appearance:none;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:14px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center}
+.plate{font-family:var(--f-mono);font-weight:700;font-size:15px;letter-spacing:.06em;background:#fff;color:#111;border:2px solid #222;border-radius:5px;padding:3px 8px;white-space:nowrap}
+.ot b{font-family:var(--f-display);font-size:19px;display:block;line-height:1.1}
+.ot small{color:var(--muted);font-size:13px}
+.prog{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right}
+.pill{display:inline-block;font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.07em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.e-PENDIENTE,.o-GENERADA{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.e-HECHO,.o-CERRADA{background:var(--ok-bg);color:var(--ok)}
+.e-NO_SE_PUDO,.o-EN_TALLER{background:var(--warn-bg);color:var(--warn)}
+.e-ANULADO{background:var(--surface-2);color:var(--muted);border:1px dashed var(--muted)}
+.item{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
+.item.anul .desc{text-decoration:line-through;color:var(--muted)}
+.crit{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:700}
+.c-hi{background:var(--crit-bg);color:var(--crit)}.c-md{background:var(--warn-bg);color:var(--warn)}.c-lo{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.ib{min-width:0;display:grid;gap:6px}
+.desc{font-weight:500}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted)}
+.thumb{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.empty{text-align:center;color:var(--muted);padding:40px 16px;background:var(--surface);border:1px dashed var(--line);border-radius:10px;margin-top:14px}
+.empty b{display:block;color:var(--fg);font-family:var(--f-display);font-size:20px;margin-bottom:4px}
+.sheet-bg{position:fixed;inset:0;background:rgba(10,16,24,.5);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:16px 16px 0 0;max-height:92%;overflow:auto}
+.sheet .wrap{padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+.sheet h3{font-family:var(--f-display);font-size:22px;margin:0}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.opt{appearance:none;border:2px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:10px;padding:14px 6px;font:700 15px var(--f-body);cursor:pointer}
+.opt[aria-pressed="true"][data-v="HECHO"]{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.opt[aria-pressed="true"][data-v="NO_SE_PUDO"]{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.opt[aria-pressed="true"][data-v="ANULADO"]{border-color:var(--muted)}
+textarea{min-height:76px}
+.foto{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.foto img{width:92px;height:92px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.actions{display:flex;gap:10px;justify-content:flex-end}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px)}
+</style>
+</head>
+<body>
+
+<section id="vLogin" hidden>
+  <div class="wrap">
+    <form class="login" id="fLogin">
+      <h2>Advanced Timco · Taller</h2>
+      <div><label class="lb" for="lCorreo">Correo</label><input type="email" id="lCorreo" autocomplete="username" required></div>
+      <div><label class="lb" for="lClave">Contraseña</label><input type="password" id="lClave" autocomplete="current-password" required></div>
+      <div class="err" id="lErr" role="alert"></div>
+      <button class="btn primary" id="lBtn" type="submit">Entrar</button>
+    </form>
+  </div>
+</section>
+
+<section id="vApp" hidden>
+  <header><div class="wrap">
+    <h1>TIMCO <span>Taller</span></h1>
+    <span class="live" id="live"><i class="dot"></i><span id="liveTxt">Conectando</span></span>
+    <button class="btn sm" id="salir">Salir</button>
+  </div></header>
+  <main class="wrap">
+    <div class="note" id="offline" hidden>Sin señal. Puedes ver las órdenes, pero los cierres se guardan cuando vuelva la conexión.</div>
+    <div class="note" id="noTec" hidden>Tu usuario no está registrado como técnico activo. Pide a Frank que te dé de alta.</div>
+    <div class="bar2">
+      <div class="chips" id="chips"></div>
+      <button class="chip" id="verCerr" aria-pressed="false">Ver cerradas</button>
+    </div>
+    <div class="list" id="lista"><div class="empty"><b>Cargando órdenes</b></div></div>
+  </main>
+</section>
+
+<div id="sheet" hidden>
+  <div class="sheet-bg" id="shBg"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+    <div class="wrap">
+      <div><div class="meta" id="shMeta"></div><h3 id="shT">Cerrar trabajo</h3><div class="desc" id="shDesc"></div></div>
+      <div><label class="lb">Resultado</label>
+        <div class="opts">
+          <button class="opt" data-v="HECHO" aria-pressed="false">Hecho</button>
+          <button class="opt" data-v="NO_SE_PUDO" aria-pressed="false">No se pudo</button>
+          <button class="opt" data-v="ANULADO" aria-pressed="false">Anular</button>
+        </div>
+      </div>
+      <div id="motBox" hidden><label class="lb" for="shMot">Motivo de la anulación</label>
+        <select id="shMot"><option value="">Elige un motivo</option><option>Repetido</option><option>Ya estaba hecho</option><option>No corresponde a la unidad</option><option>Otro</option></select></div>
+      <div><label class="lb" for="shCom">Comentario <span id="comReq"></span></label>
+        <textarea id="shCom" placeholder="Qué se hizo, repuesto usado o por qué no se pudo"></textarea></div>
+      <div><label class="lb" for="shFoto">Foto <span id="fotoReq"></span></label>
+        <div class="foto"><input type="file" id="shFoto" accept="image/*" capture="environment"><img id="shPrev" alt="Vista previa" hidden></div></div>
+      <div class="err" id="shErr" role="alert"></div>
+      <div class="actions"><button class="btn" id="shNo">Cancelar</button><button class="btn primary" id="shOk">Guardar cierre</button></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const CONFIG = { url: "https://byjgrhjklojtnnwcspgx.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5amdyaGprbG9qdG5ud2NzcGd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTM4OTksImV4cCI6MjEwNzk4OTg5OX0.-W_oPuKIzhIRHS8HhZkpy5mrD0JTYOyMX4eBOmGN2qE" };
+const sb = supabase.createClient(CONFIG.url, CONFIG.anon);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EST = {PENDIENTE:'Pendiente',HECHO:'Hecho',NO_SE_PUDO:'No se pudo',ANULADO:'Anulado'};
+const OEST = {GENERADA:'Generada',EN_TALLER:'En taller',CERRADA:'Cerrada',ANULADA:'Anulada'};
+const ERRORES = {
+  YA_CERRADO:'Otra persona ya cerró este trabajo.', FALTA_FOTO:'Toma una foto del trabajo terminado.',
+  FALTA_COMENTARIO:'Escribe un comentario.', FALTA_MOTIVO:'Elige el motivo de la anulación.',
+  NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar trabajos.', NO_EXISTE:'Ese trabajo ya no existe.',
+  FOTO_INVALIDA:'La foto no corresponde a este trabajo. Vuelve a tomarla.'
+};
+const S = { ord:[], trab:[], tec:{}, esp:'TODAS', verCerradas:false, open:new Set(), sheet:null, urls:{} };
+const critCls = c => c>=8?'c-hi':c>=5?'c-md':'c-lo';
+const fmt = iso => iso ? new Date(iso).toLocaleString('es-PE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+let tT; function toast(m){ const t=$('toast'); t.textContent=m; t.hidden=false; clearTimeout(tT); tT=setTimeout(()=>t.hidden=true,3500); }
+function live(on,txt){ $('live').classList.toggle('on',on); $('liveTxt').textContent=txt; }
+function codigoDe(err){ const t=(err&&(err.message||err.details||''))+''; return Object.keys(ERRORES).find(k=>t.includes(k)); }
+
+// ---------- sesión ----------
+async function arrancar(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ $('vLogin').hidden=false; $('vApp').hidden=true; return; }
+  $('vLogin').hidden=true; $('vApp').hidden=false;
+  const { data:esTec } = await sb.rpc('es_tecnico');
+  $('noTec').hidden = !!esTec;
+  await cargar(); suscribir();
+}
+$('fLogin').onsubmit = async e => {
+  e.preventDefault(); $('lErr').textContent=''; $('lBtn').disabled=true;
+  const { error } = await sb.auth.signInWithPassword({ email:$('lCorreo').value.trim(), password:$('lClave').value });
+  $('lBtn').disabled=false;
+  if(error){ $('lErr').textContent = error.message.includes('Invalid') ? 'Correo o contraseña incorrectos.' : 'No se pudo entrar. Revisa la señal.'; return; }
+  arrancar();
+};
+$('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+// ---------- datos ----------
+async function cargar(){
+  const [o,t,tc] = await Promise.all([
+    sb.from('ordenes').select('*').order('id'),
+    sb.from('trabajos').select('*').order('criticidad',{ascending:false}),
+    sb.from('tecnicos').select('id,nombre')]);
+  if(o.error||t.error){ live(false,'Sin conexión'); return; }
+  S.ord=o.data; S.trab=t.data; S.tec=Object.fromEntries((tc.data||[]).map(x=>[x.id,x.nombre]));
+  live(true,'En vivo'); await firmarFotos(); render();
+}
+async function firmarFotos(){
+  const faltan=[...new Set(S.trab.map(t=>t.foto_path).filter(p=>p&&!S.urls[p]))];
+  if(!faltan.length) return;
+  const { data } = await sb.storage.from('evidencias').createSignedUrls(faltan, 3600);
+  (data||[]).forEach(d=>{ if(d.signedUrl) S.urls[d.path]=d.signedUrl; });
+}
+let recarga;
+function suscribir(){
+  sb.channel('cambios')
+    .on('postgres_changes',{event:'*',schema:'public',table:'trabajos'},()=>{ clearTimeout(recarga); recarga=setTimeout(cargar,400); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'ordenes'},()=>{ clearTimeout(recarga); recarga=setTimeout(cargar,400); })
+    .subscribe(st=>{ if(st==='SUBSCRIBED') live(true,'En vivo'); });
+  setInterval(cargar, 30000);
+}
+addEventListener('online',()=>{$('offline').hidden=true;cargar();});
+addEventListener('offline',()=>{$('offline').hidden=false;live(false,'Sin señal');});
+
+// ---------- vista ----------
+const trDe = oid => S.trab.filter(t=>t.orden_id===oid);
+function render(){
+  const esps=['TODAS',...new Set(S.ord.map(o=>o.especialidad).filter(Boolean))];
+  $('chips').innerHTML=esps.map(e=>`<button class="chip" data-esp="${esc(e)}" aria-pressed="${S.esp===e}">${e==='TODAS'?'Todas':esc(e)}</button>`).join('');
+  $('verCerr').setAttribute('aria-pressed',S.verCerradas);
+  const vis=S.ord.filter(o=>(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||o.estado!=='CERRADA')&&o.estado!=='ANULADA');
+  if(!vis.length){ $('lista').innerHTML=`<div class="empty"><b>No hay órdenes abiertas</b>Las órdenes nuevas aparecen aquí al instante.</div>`; return; }
+  $('lista').innerHTML=vis.map(o=>{ const ts=trDe(o.id), r=ts.filter(t=>t.estado!=='PENDIENTE').length, op=S.open.has(o.id);
+    return `<article class="orden"><button class="ohead" data-o="${esc(o.id)}" aria-expanded="${op}">
+      <span class="plate">${esc(o.placa)}</span>
+      <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
+      <span class="prog">${r}/${ts.length}</span></button>
+      ${op?ts.map(item).join(''):''}</article>`; }).join('');
+}
+function item(t){
+  let acc = t.estado==='PENDIENTE' ? `<div><button class="btn primary sm" data-c="${esc(t.id)}">Cerrar trabajo</button></div>` : '';
+  const quien = t.cerrado_por ? `<span>${esc(S.tec[t.cerrado_por]||'Técnico')}</span><span>${fmt(t.cerrado_en)}</span>` : '';
+  return `<div class="item${t.estado==='ANULADO'?' anul':''}"><span class="crit ${critCls(t.criticidad)}">${t.criticidad}</span><div class="ib">
+    <span class="desc">${esc(t.descripcion)}</span>
+    <span class="meta"><span class="pill e-${t.estado}">${EST[t.estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${quien}</span>
+    ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
+    ${t.foto_path&&S.urls[t.foto_path]?`<img class="thumb" src="${esc(S.urls[t.foto_path])}" alt="Foto del cierre">`:''}
+    ${acc}</div></div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.o){ S.open.has(b.dataset.o)?S.open.delete(b.dataset.o):S.open.add(b.dataset.o); render(); }
+  else if(b.dataset.esp){ S.esp=b.dataset.esp; render(); }
+  else if(b.id==='verCerr'){ S.verCerradas=!S.verCerradas; render(); }
+  else if(b.dataset.c) abrir(b.dataset.c);
+  else if(b.dataset.v&&S.sheet){ S.sheet.res=b.dataset.v; document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b)); req(); }
+});
+
+// ---------- cerrar ----------
+function abrir(id){
+  const t=S.trab.find(x=>x.id===id); const o=S.ord.find(x=>x.id===t.orden_id)||{};
+  S.sheet={id,res:null,file:null};
+  $('shMeta').innerHTML=`<span class="plate">${esc(o.placa)}</span><b>${esc(o.id)}</b>`; $('shDesc').textContent=t.descripcion;
+  document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false'));
+  $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shPrev').hidden=true; $('shErr').textContent='';
+  $('shOk').disabled=false; $('shOk').textContent='Guardar cierre'; req(); $('sheet').hidden=false;
+}
+function cerrarHoja(){ $('sheet').hidden=true; S.sheet=null; }
+function req(){ const r=S.sheet&&S.sheet.res; $('shErr').textContent=''; $('motBox').hidden=r!=='ANULADO';
+  $('comReq').textContent=(r==='NO_SE_PUDO'||(r==='ANULADO'&&$('shMot').value==='Otro'))?'(obligatorio)':'(opcional)';
+  $('fotoReq').textContent=r==='HECHO'?'(obligatoria)':'(opcional)'; }
+$('shMot').onchange=req; $('shNo').onclick=cerrarHoja; $('shBg').onclick=cerrarHoja;
+$('shFoto').onchange=e=>{ const f=e.target.files[0]; S.sheet.file=f||null; if(f){ $('shPrev').src=URL.createObjectURL(f); $('shPrev').hidden=false; } };
+async function comprimir(file){
+  const url=URL.createObjectURL(file);
+  try{ const img=await new Promise((ok,no)=>{const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=url;});
+    const k=Math.min(1,1600/Math.max(img.width,img.height)); const c=document.createElement('canvas');
+    c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return await new Promise(ok=>c.toBlob(b=>ok(b),'image/jpeg',0.75));
+  } finally { URL.revokeObjectURL(url); }
+}
+$('shOk').onclick = async () => {
+  const sh=S.sheet, err=$('shErr'); err.textContent='';
+  const com=$('shCom').value.trim(), mot=sh.res==='ANULADO'?$('shMot').value:null;
+  if(!sh.res) return err.textContent='Elige Hecho, No se pudo o Anular.';
+  if(sh.res==='ANULADO'&&!mot) return err.textContent=ERRORES.FALTA_MOTIVO;
+  if((sh.res==='NO_SE_PUDO'||mot==='Otro')&&!com) return err.textContent=ERRORES.FALTA_COMENTARIO;
+  if(sh.res==='HECHO'&&!sh.file) return err.textContent=ERRORES.FALTA_FOTO;
+  if(!navigator.onLine) return err.textContent='Sin señal. Intenta de nuevo cuando vuelva la conexión.';
+  const btn=$('shOk'); btn.disabled=true;
+  try{
+    let ruta=null;
+    if(sh.file){ btn.textContent='Subiendo foto…'; const blob=await comprimir(sh.file);
+      ruta=`${sh.id}/${Date.now()}.jpg`;
+      const up=await sb.storage.from('evidencias').upload(ruta, blob, {contentType:'image/jpeg', upsert:false});
+      if(up.error) throw up.error; }
+    btn.textContent='Guardando…';
+    const { error } = await sb.rpc('cerrar_trabajo',{p_trabajo:sh.id,p_estado:sh.res,p_comentario:com||null,p_motivo:mot,p_foto:ruta});
+    if(error) throw error;
+    cerrarHoja(); toast(sh.res==='HECHO'?'Trabajo cerrado como hecho.':sh.res==='ANULADO'?'Trabajo anulado.':'Registrado como no se pudo.');
+    cargar();
+  }catch(e){
+    const c=codigoDe(e); err.textContent = ERRORES[c] || 'No se pudo guardar. Revisa la señal e inténtalo otra vez.';
+    if(c==='YA_CERRADO'){ cerrarHoja(); toast(ERRORES.YA_CERRADO); cargar(); }
+    btn.disabled=false; btn.textContent='Guardar cierre';
+  }
+};
+sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.reload(); });
+arrancar();
+</script>
+</body>
+</html>
