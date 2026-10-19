@@ -145,13 +145,15 @@ const CONFIG = { url: "https://byjgrhjklojtnnwcspgx.supabase.co", anon: "eyJhbGc
 const sb = supabase.createClient(CONFIG.url, CONFIG.anon);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const EST = {PENDIENTE:'Pendiente',HECHO:'Hecho',NO_SE_PUDO:'No se pudo',ANULADO:'Anulado'};
-const OEST = {GENERADA:'Generada',EN_TALLER:'En taller',CERRADA:'Cerrada',ANULADA:'Anulada'};
+const EST = {PENDIENTE:'Pendiente',HECHO:'Hecho',NO_SE_PUDO:'No se pudo',ANULADO:'Anulado',NO_TRABAJADO:'No trabajado'};
+const OEST = {GENERADA:'Generada',EN_TALLER:'En taller',POR_CERRAR:'Por cerrar',CERRADA:'Cerrada',CERRADA_PARCIAL:'Cerrada parcial',ANULADA:'Anulada'};
+const CERRADAS = ['CERRADA','CERRADA_PARCIAL','ANULADA'];
 const ERRORES = {
   YA_CERRADO:'Otra persona ya cerró este trabajo.', FALTA_FOTO:'Toma una foto del trabajo terminado.',
   FALTA_COMENTARIO:'Escribe un comentario.', FALTA_MOTIVO:'Elige el motivo de la anulación.',
   NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar trabajos.', NO_EXISTE:'Ese trabajo ya no existe.',
-  FOTO_INVALIDA:'La foto no corresponde a este trabajo. Vuelve a tomarla.'
+  FOTO_INVALIDA:'La foto no corresponde a este trabajo. Vuelve a tomarla.',
+  FOTO_GRANDE:'La foto es demasiado pesada. Tómala de nuevo con buena luz.'
 };
 const S = { ord:[], trab:[], tec:{}, esp:'TODAS', verCerradas:false, open:new Set(), sheet:null, urls:{} };
 const critCls = c => c>=8?'c-hi':c>=5?'c-md':'c-lo';
@@ -189,7 +191,7 @@ async function cargar(){
   live(true,'En vivo'); await firmarFotos(); render();
 }
 async function firmarFotos(){
-  const faltan=[...new Set(S.trab.map(t=>t.foto_path).filter(p=>p&&!S.urls[p]))];
+  const faltan=[...new Set(S.trab.filter(t=>!t.foto_archivada).map(t=>t.foto_path).filter(p=>p&&!S.urls[p]))];
   if(!faltan.length) return;
   const { data } = await sb.storage.from('evidencias').createSignedUrls(faltan, 3600);
   (data||[]).forEach(d=>{ if(d.signedUrl) S.urls[d.path]=d.signedUrl; });
@@ -211,9 +213,9 @@ function render(){
   const esps=['TODAS',...new Set(S.ord.map(o=>o.especialidad).filter(Boolean))];
   $('chips').innerHTML=esps.map(e=>`<button class="chip" data-esp="${esc(e)}" aria-pressed="${S.esp===e}">${e==='TODAS'?'Todas':esc(e)}</button>`).join('');
   $('verCerr').setAttribute('aria-pressed',S.verCerradas);
-  const vis=S.ord.filter(o=>(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||o.estado!=='CERRADA')&&o.estado!=='ANULADA');
+  const vis=S.ord.filter(o=>(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||!CERRADAS.includes(o.estado))&&o.estado!=='ANULADA');
   if(!vis.length){ $('lista').innerHTML=`<div class="empty"><b>No hay órdenes abiertas</b>Las órdenes nuevas aparecen aquí al instante.</div>`; return; }
-  $('lista').innerHTML=vis.map(o=>{ const ts=trDe(o.id), r=ts.filter(t=>t.estado!=='PENDIENTE').length, op=S.open.has(o.id);
+  $('lista').innerHTML=vis.map(o=>{ const ts=trDe(o.id).filter(t=>t.estado!=='NO_TRABAJADO'), r=ts.filter(t=>t.estado!=='PENDIENTE').length, op=S.open.has(o.id);
     return `<article class="orden"><button class="ohead" data-o="${esc(o.id)}" aria-expanded="${op}">
       <span class="plate">${esc(o.placa)}</span>
       <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
@@ -223,7 +225,7 @@ function render(){
 function item(t){
   let acc = t.estado==='PENDIENTE' ? `<div><button class="btn primary sm" data-c="${esc(t.id)}">Cerrar trabajo</button></div>` : '';
   const quien = t.cerrado_por ? `<span>${esc(S.tec[t.cerrado_por]||'Técnico')}</span><span>${fmt(t.cerrado_en)}</span>` : '';
-  return `<div class="item${t.estado==='ANULADO'?' anul':''}"><span class="crit ${critCls(t.criticidad)}">${t.criticidad}</span><div class="ib">
+  return `<div class="item${t.estado==='ANULADO'||t.estado==='NO_TRABAJADO'?' anul':''}"><span class="crit ${critCls(t.criticidad)}">${t.criticidad}</span><div class="ib">
     <span class="desc">${esc(t.descripcion)}</span>
     <span class="meta"><span class="pill e-${t.estado}">${EST[t.estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${quien}</span>
     ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
@@ -254,13 +256,30 @@ function req(){ const r=S.sheet&&S.sheet.res; $('shErr').textContent=''; $('motB
   $('fotoReq').textContent=r==='HECHO'?'(obligatoria)':'(opcional)'; }
 $('shMot').onchange=req; $('shNo').onclick=cerrarHoja; $('shBg').onclick=cerrarHoja;
 $('shFoto').onchange=e=>{ const f=e.target.files[0]; S.sheet.file=f||null; if(f){ $('shPrev').src=URL.createObjectURL(f); $('shPrev').hidden=false; } };
+// Estándar de fotos: lado largo 1600 px, JPEG 82 %, orientación corregida, sin GPS ni datos del teléfono.
+// Si pasa de 900 KB baja la calidad, y en último caso el tamaño, hasta entrar (la nube rechaza más de 1 MB).
+const FOTO = { lado: 1600, calidad: 0.82, maxBytes: 900 * 1024 };
+async function cargarImagen(file){
+  try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch(_) {
+    const url = URL.createObjectURL(file);
+    try { return await new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=url; }); }
+    finally { setTimeout(()=>URL.revokeObjectURL(url), 1000); }
+  }
+}
+function aJpeg(img, lado, calidad){
+  const w = img.width, h = img.height, k = Math.min(1, lado / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.round(w*k); c.height = Math.round(h*k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height);
+  return new Promise((ok,no)=>c.toBlob(b=> b ? ok(b) : no(new Error('No se pudo procesar la foto')), 'image/jpeg', calidad));
+}
 async function comprimir(file){
-  const url=URL.createObjectURL(file);
-  try{ const img=await new Promise((ok,no)=>{const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=url;});
-    const k=Math.min(1,1600/Math.max(img.width,img.height)); const c=document.createElement('canvas');
-    c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-    return await new Promise(ok=>c.toBlob(b=>ok(b),'image/jpeg',0.75));
-  } finally { URL.revokeObjectURL(url); }
+  const img = await cargarImagen(file);
+  for (const [lado, calidad] of [[FOTO.lado, FOTO.calidad],[FOTO.lado, 0.72],[1280, 0.72],[1024, 0.65]]) {
+    const b = await aJpeg(img, lado, calidad);
+    if (b.size <= FOTO.maxBytes) return b;
+  }
+  throw new Error('FOTO_GRANDE');
 }
 $('shOk').onclick = async () => {
   const sh=S.sheet, err=$('shErr'); err.textContent='';
@@ -279,7 +298,7 @@ $('shOk').onclick = async () => {
       if(up.error) throw up.error; }
     btn.textContent='Guardando…';
     const { error } = await sb.rpc('cerrar_trabajo',{p_trabajo:sh.id,p_estado:sh.res,p_comentario:com||null,p_motivo:mot,p_foto:ruta});
-    if(error) throw error;
+    if(error){ if(ruta) sb.storage.from('evidencias').remove([ruta]).catch(()=>{}); throw error; }  // no deja fotos huérfanas
     cerrarHoja(); toast(sh.res==='HECHO'?'Trabajo cerrado como hecho.':sh.res==='ANULADO'?'Trabajo anulado.':'Registrado como no se pudo.');
     cargar();
   }catch(e){
