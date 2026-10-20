@@ -273,11 +273,23 @@ $('fClave').onsubmit = async e => {
 };
 
 // ---------- datos ----------
+// La nube entrega como mucho 1000 filas por consulta: sin paginar, el
+// historial de cada técnico se cortaba en silencio al pasar las 1000.
+// Solo las órdenes del Generador (OS-…): las de prueba de la beta no salen.
+async function todo(armar){
+  let out=[];
+  for(let i=0;;i+=1000){
+    const r=await armar().range(i,i+999);
+    if(r.error) return r;
+    out=out.concat(r.data||[]);
+    if(!r.data||r.data.length<1000) return {data:out,error:null};
+  }
+}
 async function cargar(){
   try{
     const [o,t,tc,pb] = await Promise.all([
-      sb.from('ordenes').select('*').order('id'),
-      sb.from('trabajos').select('*').order('criticidad',{ascending:false}),
+      todo(()=>sb.from('ordenes').select('*').like('id','OS-%').order('id')),
+      todo(()=>sb.from('trabajos').select('*').like('orden_id','OS-%').order('criticidad',{ascending:false}).order('id')),
       sb.from('tecnicos').select('*'),
       sb.from('publicaciones').select('clave,datos,actualizado')]);
     if(o.error||t.error) throw (o.error||t.error);
