@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="google" content="notranslate">
 <meta name="theme-color" content="#1f3a56">
-<title>Advanced Timco · Taller</title>
+<title>TIMCO · Taller</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
+/* Página del técnico (Generador 2.53): Plan del día · Órdenes · Aceite · Mis trabajos.
+   Barra de pestañas abajo, al alcance del pulgar; la orden se cierra en una hoja que sube. */
 :root{
   --bg:#eef1f4; --surface:#fff; --surface-2:#f5f7f9; --line:#d6dce3; --fg:#16202b; --muted:#5b6876;
   --accent:#e08a00; --accent-ink:#1b1300; --steel:#1f3a56;
@@ -21,13 +24,14 @@
   --accent:#f2a531; --steel:#8fb4d9; --ok:#5cc791; --ok-bg:#163326; --warn:#f0b35a; --warn-bg:#3a2a12; --crit:#ff8a80; --crit-bg:#3d1b19; color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 [hidden]{display:none!important}
-.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-header .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:12px}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:10px}
 h1{font-family:var(--f-display);font-size:22px;margin:0;line-height:1}
 h1 span{color:var(--accent)}
+.yo{font-size:13px;color:var(--muted);display:block;margin-top:2px}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .live.on .dot{background:var(--ok)}
@@ -35,39 +39,68 @@ h1 span{color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.sm{padding:6px 10px;font-size:13px}
 .btn:disabled{opacity:.55}
-.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.ohead:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.ohead:focus-visible,nav button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .login{max-width:380px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:grid;gap:14px}
 .login h2{font-family:var(--f-display);font-size:28px;margin:0}
 label.lb{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px}
-input[type=email],input[type=password],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);font:16px var(--f-body);padding:11px}
+input[type=email],input[type=password],input[type=search],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);font:16px var(--f-body);padding:11px}
 .err{color:var(--crit);font-size:14px;min-height:1em}
 .note{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+.note.ok{background:var(--ok-bg);color:var(--ok)}
 .bar2{display:flex;gap:8px;align-items:center;justify-content:space-between;padding-block:12px 4px;flex-wrap:wrap}
-.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;max-width:100%}
 .chip{flex:none;appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 13px var(--f-body);padding:6px 12px;border-radius:999px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--surface)}
-.list{display:grid;gap:12px;margin:10px 0 40px}
+.chip .n{font-family:var(--f-mono);font-size:11px;margin-left:6px;opacity:.75}
+h2.sec{font-family:var(--f-display);font-size:19px;margin:18px 0 8px;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 0}
+.list{display:grid;gap:12px;margin:10px 0 24px}
 .orden{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.orden.mia{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .ohead{width:100%;appearance:none;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:14px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center}
 .plate{font-family:var(--f-mono);font-weight:700;font-size:15px;letter-spacing:.06em;background:#fff;color:#111;border:2px solid #222;border-radius:5px;padding:3px 8px;white-space:nowrap}
+.ot{min-width:0}
 .ot b{font-family:var(--f-display);font-size:19px;display:block;line-height:1.1}
 .ot small{color:var(--muted);font-size:13px}
 .prog{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right}
 .pill{display:inline-block;font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.07em;padding:2px 8px;border-radius:999px;white-space:nowrap}
 .e-PENDIENTE,.o-GENERADA{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
-.e-HECHO,.o-CERRADA{background:var(--ok-bg);color:var(--ok)}
-.e-NO_SE_PUDO,.o-EN_TALLER{background:var(--warn-bg);color:var(--warn)}
-.e-ANULADO{background:var(--surface-2);color:var(--muted);border:1px dashed var(--muted)}
+.e-HECHO,.o-CERRADA,.s-OK{background:var(--ok-bg);color:var(--ok)}
+.e-NO_SE_PUDO,.o-EN_TALLER,.o-POR_CERRAR,.s-PROXIMO{background:var(--warn-bg);color:var(--warn)}
+.e-ANULADO,.e-NO_TRABAJADO,.o-CERRADA_PARCIAL,.s-SIN{background:var(--surface-2);color:var(--muted);border:1px dashed var(--muted)}
+.e-COLA{background:var(--steel);color:var(--surface)}
+.s-VENCIDO,.s-CRITICO{background:var(--crit-bg);color:var(--crit)}
+.tec{background:var(--surface-2);border:1px solid var(--line);color:var(--fg)}
+.tec.yo{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .item{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
 .item.anul .desc{text-decoration:line-through;color:var(--muted)}
 .crit{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:700}
 .c-hi{background:var(--crit-bg);color:var(--crit)}.c-md{background:var(--warn-bg);color:var(--warn)}.c-lo{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
 .ib{min-width:0;display:grid;gap:6px}
-.desc{font-weight:500}
+.desc{font-weight:500;overflow-wrap:anywhere}
 .meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted)}
 .thumb{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
-.empty{text-align:center;color:var(--muted);padding:40px 16px;background:var(--surface);border:1px dashed var(--line);border-radius:10px;margin-top:14px}
+.empty{text-align:center;color:var(--muted);padding:34px 16px;background:var(--surface);border:1px dashed var(--line);border-radius:10px;margin-top:14px}
 .empty b{display:block;color:var(--fg);font-family:var(--f-display);font-size:20px;margin-bottom:4px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 8px;text-align:center}
+.kpi b{display:block;font-family:var(--f-mono);font-size:20px}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.rojo b{color:var(--crit)}
+.vida{height:6px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin-top:4px}
+.vida i{display:block;height:100%}
+.per{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-top:1px solid var(--line);font-size:14px}
+.per:first-child{border-top:0}
+.per b{font-weight:600}
+.per small{grid-column:1/-1;color:var(--muted)}
+.per.yo{background:var(--warn-bg)}
+.buscar{margin-top:12px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-block:6px}
+nav.tabs button{appearance:none;border:0;background:none;color:var(--muted);font:600 12px var(--f-body);display:grid;justify-items:center;gap:2px;padding:6px 2px;border-radius:8px;cursor:pointer;position:relative}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--steel);background:var(--surface-2)}
+nav.tabs .badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(--accent);color:var(--accent-ink);font:700 10px var(--f-mono);border-radius:999px;padding:1px 5px}
 .sheet-bg{position:fixed;inset:0;background:rgba(10,16,24,.5);z-index:20}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:16px 16px 0 0;max-height:92%;overflow:auto}
 .sheet .wrap{padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
@@ -80,8 +113,11 @@ input[type=email],input[type=password],textarea,select{width:100%;border:1px sol
 textarea{min-height:76px}
 .foto{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .foto img{width:92px;height:92px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
-.actions{display:flex;gap:10px;justify-content:flex-end}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px)}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px)}
+.menu{position:absolute;right:16px;top:52px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:grid;min-width:200px;z-index:8;overflow:hidden}
+.menu button{appearance:none;border:0;background:none;color:var(--fg);text-align:left;font:500 15px var(--f-body);padding:12px 14px;cursor:pointer;border-top:1px solid var(--line)}
+.menu button:first-child{border-top:0}
 </style>
 </head>
 <body>
@@ -89,7 +125,7 @@ textarea{min-height:76px}
 <section id="vLogin" hidden>
   <div class="wrap">
     <form class="login" id="fLogin">
-      <h2>Advanced Timco · Taller</h2>
+      <h2>TIMCO · Taller</h2>
       <div><label class="lb" for="lCorreo">Correo</label><input type="email" id="lCorreo" autocomplete="username" required></div>
       <div><label class="lb" for="lClave">Contraseña</label><input type="password" id="lClave" autocomplete="current-password" required></div>
       <div class="err" id="lErr" role="alert"></div>
@@ -99,20 +135,37 @@ textarea{min-height:76px}
 </section>
 
 <section id="vApp" hidden>
-  <header><div class="wrap">
-    <h1>TIMCO <span>Taller</span></h1>
+  <header><div class="wrap" style="position:relative">
+    <div><h1>TIMCO <span>Taller</span></h1><span class="yo" id="yo"></span></div>
     <span class="live" id="live"><i class="dot"></i><span id="liveTxt">Conectando</span></span>
-    <button class="btn sm" id="salir">Salir</button>
+    <button class="btn sm" id="bMenu" aria-haspopup="true" aria-expanded="false">Menú</button>
+    <div class="menu" id="menu" hidden>
+      <button id="mClave">Cambiar contraseña</button>
+      <button id="mRecargar">Actualizar datos</button>
+      <button id="salir">Salir</button>
+    </div>
   </div></header>
   <main class="wrap">
-    <div class="note" id="offline" hidden>Sin señal. Puedes ver las órdenes, pero los cierres se guardan cuando vuelva la conexión.</div>
+    <div class="note" id="offline" hidden>Sin señal. Puedes ver todo; los cierres se guardan en el celular y se envían solos cuando vuelva la conexión.</div>
+    <div class="note" id="cola" hidden></div>
     <div class="note" id="noTec" hidden>Tu usuario no está registrado como técnico activo. Pide a Frank que te dé de alta.</div>
-    <div class="bar2">
-      <div class="chips" id="chips"></div>
-      <button class="chip" id="verCerr" aria-pressed="false">Ver cerradas</button>
-    </div>
-    <div class="list" id="lista"><div class="empty"><b>Cargando órdenes</b></div></div>
+
+    <section id="pPlan" data-p="plan"></section>
+    <section id="pOrd" data-p="ord" hidden>
+      <input type="search" class="buscar" id="bOrd" placeholder="Buscar placa u orden" aria-label="Buscar placa u orden">
+      <div class="bar2"><div class="chips" id="chips"></div>
+        <button class="chip" id="verCerr" aria-pressed="false">Ver cerradas</button></div>
+      <div class="list" id="lista"><div class="empty"><b>Cargando órdenes</b></div></div>
+    </section>
+    <section id="pAce" data-p="ace" hidden></section>
+    <section id="pHist" data-p="hist" hidden></section>
   </main>
+  <nav class="tabs" aria-label="Secciones"><div class="wrap">
+    <button data-tab="plan" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Plan del día</button>
+    <button data-tab="ord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h5v5M21 3l-9 9"/><path d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>Órdenes<span class="badge" id="nOrd" hidden></span></button>
+    <button data-tab="ace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>Aceite</button>
+    <button data-tab="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Mis trabajos</button>
+  </div></nav>
 </section>
 
 <div id="sheet" hidden>
@@ -138,6 +191,19 @@ textarea{min-height:76px}
     </div>
   </div>
 </div>
+
+<div id="shClave" hidden>
+  <div class="sheet-bg" data-cerrar="clave"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cT">
+    <form class="wrap" id="fClave">
+      <h3 id="cT">Cambiar contraseña</h3>
+      <div><label class="lb" for="c1">Nueva contraseña</label><input type="password" id="c1" autocomplete="new-password" minlength="8" required></div>
+      <div><label class="lb" for="c2">Repite la contraseña</label><input type="password" id="c2" autocomplete="new-password" minlength="8" required></div>
+      <div class="err" id="cErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="button" data-cerrar="clave">Cancelar</button><button class="btn primary" type="submit" id="cOk">Guardar</button></div>
+    </form>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -145,105 +211,266 @@ const CONFIG = { url: "https://byjgrhjklojtnnwcspgx.supabase.co", anon: "eyJhbGc
 const sb = supabase.createClient(CONFIG.url, CONFIG.anon);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const EST = {PENDIENTE:'Pendiente',HECHO:'Hecho',NO_SE_PUDO:'No se pudo',ANULADO:'Anulado',NO_TRABAJADO:'No trabajado'};
+const sinT = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();
+const EST = {PENDIENTE:'Pendiente',HECHO:'Hecho',NO_SE_PUDO:'No se pudo',ANULADO:'Anulado',NO_TRABAJADO:'No se trabajó',COLA:'Por enviar'};
 const OEST = {GENERADA:'Generada',EN_TALLER:'En taller',POR_CERRAR:'Por cerrar',CERRADA:'Cerrada',CERRADA_PARCIAL:'Cerrada parcial',ANULADA:'Anulada'};
+const SEM = {VENCIDO:'Vencido',CRITICO:'Crítico',PROXIMO:'Próximo',OK:'Al día','SIN DATO':'Sin dato',INOPERATIVA:'Inoperativa'};
+const SEM_ORDEN = ['VENCIDO','CRITICO','PROXIMO','OK','SIN DATO','INOPERATIVA'];
+const CAT = {MECANICO:'Mecánico',ELECTRICO:'Eléctrico',INFRAESTRUCTURA:'Infraestructura',NEUMATICO:'Neumático',PINTURA:'Pintura',REFRIGERADO:'Refrigerado',ACCESORIO:'Accesorio',IMPLEMENTO:'Implemento',PERMISOLOGIA:'Permisología'};
 const CERRADAS = ['CERRADA','CERRADA_PARCIAL','ANULADA'];
 const ERRORES = {
   YA_CERRADO:'Otra persona ya cerró este trabajo.', FALTA_FOTO:'Toma una foto del trabajo terminado.',
   FALTA_COMENTARIO:'Escribe un comentario.', FALTA_MOTIVO:'Elige el motivo de la anulación.',
-  NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar trabajos.', NO_EXISTE:'Ese trabajo ya no existe.',
+  NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar este trabajo.', NO_EXISTE:'Ese trabajo ya no existe.',
   FOTO_INVALIDA:'La foto no corresponde a este trabajo. Vuelve a tomarla.',
   FOTO_GRANDE:'La foto es demasiado pesada. Tómala de nuevo con buena luz.'
 };
-const S = { ord:[], trab:[], tec:{}, esp:'TODAS', verCerradas:false, open:new Set(), sheet:null, urls:{} };
+const S = { ord:[], trab:[], tec:{}, me:null, uid:null, plan:null, ace:null, esp:'TODAS', verCerradas:false,
+            open:new Set(), sheet:null, urls:{}, tab:'plan', bOrd:'', semAce:'', bAce:'', histTodos:false, cola:[] };
 const critCls = c => c>=8?'c-hi':c>=5?'c-md':'c-lo';
 const fmt = iso => iso ? new Date(iso).toLocaleString('es-PE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
-let tT; function toast(m){ const t=$('toast'); t.textContent=m; t.hidden=false; clearTimeout(tT); tT=setTimeout(()=>t.hidden=true,3500); }
+const dia = iso => { if(!iso) return ''; const d=new Date(String(iso).slice(0,10)+'T12:00:00'); return d.toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}); };
+const miles = n => n==null ? '—' : Math.round(n).toLocaleString('es-PE');
+let tT; function toast(m){ const t=$('toast'); t.textContent=m; t.hidden=false; clearTimeout(tT); tT=setTimeout(()=>t.hidden=true,3800); }
 function live(on,txt){ $('live').classList.toggle('on',on); $('liveTxt').textContent=txt; }
-function codigoDe(err){ const t=(err&&(err.message||err.details||''))+''; return Object.keys(ERRORES).find(k=>t.includes(k)); }
+function codigoDe(err){ const t=(err&&(err.message||err.details||err.error||''))+''; return Object.keys(ERRORES).find(k=>t.includes(k)); }
+const esRed = e => !navigator.onLine || /fetch|network|Failed|Load failed|timeout/i.test(String(e&&(e.message||e)));
+// El nombre del Plan del día viene del Generador (p. ej. EDGAR) y el del usuario de la nube puede
+// variar un poco (EDGARD): se comparan sin tildes, y basta con que uno empiece como el otro.
+const mismoNombre = (a,b) => { a=sinT(a); b=sinT(b); return !!a && !!b && (a===b || (Math.min(a.length,b.length)>=4 && (a.startsWith(b)||b.startsWith(a)))); };
+const esYo = n => S.me && mismoNombre(n, S.me.nombre);
 
 // ---------- sesión ----------
 async function arrancar(){
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ $('vLogin').hidden=false; $('vApp').hidden=true; return; }
+  S.uid = session.user.id;
   $('vLogin').hidden=true; $('vApp').hidden=false;
-  const { data:esTec } = await sb.rpc('es_tecnico');
-  $('noTec').hidden = !!esTec;
-  await cargar(); suscribir();
+  try { const { data:esTec } = await sb.rpc('es_tecnico'); $('noTec').hidden = !!esTec; } catch(_) {}
+  await abrirCola(); await cargar(); suscribir(); enviarCola();
 }
 $('fLogin').onsubmit = async e => {
   e.preventDefault(); $('lErr').textContent=''; $('lBtn').disabled=true;
   const { error } = await sb.auth.signInWithPassword({ email:$('lCorreo').value.trim(), password:$('lClave').value });
   $('lBtn').disabled=false;
-  if(error){ $('lErr').textContent = error.message.includes('Invalid') ? 'Correo o contraseña incorrectos.' : 'No se pudo entrar. Revisa la señal.'; return; }
+  if(error){ $('lErr').textContent = /Invalid/i.test(error.message) ? 'Correo o contraseña incorrectos.' : 'No se pudo entrar. Revisa la señal.'; return; }
   arrancar();
 };
 $('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$('bMenu').onclick = () => { const m=$('menu'); m.hidden=!m.hidden; $('bMenu').setAttribute('aria-expanded', !m.hidden); };
+$('mRecargar').onclick = () => { $('menu').hidden=true; cargar(); };
+$('mClave').onclick = () => { $('menu').hidden=true; $('c1').value=''; $('c2').value=''; $('cErr').textContent=''; $('shClave').hidden=false; };
+document.querySelectorAll('[data-cerrar="clave"]').forEach(b=>b.onclick=()=>$('shClave').hidden=true);
+$('fClave').onsubmit = async e => {
+  e.preventDefault(); const a=$('c1').value, b=$('c2').value;
+  if(a.length<8) return $('cErr').textContent='Debe tener al menos 8 caracteres.';
+  if(a!==b) return $('cErr').textContent='Las dos contraseñas no coinciden.';
+  $('cOk').disabled=true;
+  const { error } = await sb.auth.updateUser({ password:a });
+  $('cOk').disabled=false;
+  if(error) return $('cErr').textContent = /different|same/i.test(error.message) ? 'Usa una contraseña distinta a la actual.' : 'No se pudo cambiar. Revisa la señal.';
+  $('shClave').hidden=true; toast('Contraseña cambiada.');
+};
 
 // ---------- datos ----------
 async function cargar(){
-  const [o,t,tc] = await Promise.all([
-    sb.from('ordenes').select('*').order('id'),
-    sb.from('trabajos').select('*').order('criticidad',{ascending:false}),
-    sb.from('tecnicos').select('id,nombre')]);
-  if(o.error||t.error){ live(false,'Sin conexión'); return; }
-  S.ord=o.data; S.trab=t.data; S.tec=Object.fromEntries((tc.data||[]).map(x=>[x.id,x.nombre]));
-  live(true,'En vivo'); await firmarFotos(); render();
+  try{
+    const [o,t,tc,pb] = await Promise.all([
+      sb.from('ordenes').select('*').order('id'),
+      sb.from('trabajos').select('*').order('criticidad',{ascending:false}),
+      sb.from('tecnicos').select('*'),
+      sb.from('publicaciones').select('clave,datos,actualizado')]);
+    if(o.error||t.error) throw (o.error||t.error);
+    S.ord=o.data||[]; S.trab=t.data||[];
+    const tecs=tc.data||[]; S.tec=Object.fromEntries(tecs.map(x=>[x.id,x.nombre]));
+    S.me=tecs.find(x=>x.id===S.uid)||null;
+    const pub=Object.fromEntries((pb.data||[]).map(x=>[x.clave,x]));
+    S.plan=(pub.plan&&pub.plan.datos&&pub.plan.datos.u)?pub.plan.datos:null;
+    S.ace=(pub.aceite&&pub.aceite.datos&&pub.aceite.datos.u)?pub.aceite.datos:null;
+    $('yo').textContent = S.me ? (S.me.nombre + (S.me.es_admin ? ' · Administrador' : (S.me.especialidad ? ' · '+S.me.especialidad : ''))) : '';
+    live(true,'En vivo'); await firmarFotos();
+  }catch(e){ live(false, navigator.onLine ? 'Sin conexión' : 'Sin señal'); }
+  render();
 }
 async function firmarFotos(){
   const faltan=[...new Set(S.trab.filter(t=>!t.foto_archivada).map(t=>t.foto_path).filter(p=>p&&!S.urls[p]))];
   if(!faltan.length) return;
-  const { data } = await sb.storage.from('evidencias').createSignedUrls(faltan, 3600);
-  (data||[]).forEach(d=>{ if(d.signedUrl) S.urls[d.path]=d.signedUrl; });
+  try{ const { data } = await sb.storage.from('evidencias').createSignedUrls(faltan, 3600);
+    (data||[]).forEach(d=>{ if(d.signedUrl) S.urls[d.path]=d.signedUrl; }); }catch(_){}
 }
-let recarga;
+let recarga, sondeo;
 function suscribir(){
+  const pronto=()=>{ clearTimeout(recarga); recarga=setTimeout(cargar,500); };
   sb.channel('cambios')
-    .on('postgres_changes',{event:'*',schema:'public',table:'trabajos'},()=>{ clearTimeout(recarga); recarga=setTimeout(cargar,400); })
-    .on('postgres_changes',{event:'*',schema:'public',table:'ordenes'},()=>{ clearTimeout(recarga); recarga=setTimeout(cargar,400); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'trabajos'},pronto)
+    .on('postgres_changes',{event:'*',schema:'public',table:'ordenes'},pronto)
+    .on('postgres_changes',{event:'*',schema:'public',table:'publicaciones'},pronto)
     .subscribe(st=>{ if(st==='SUBSCRIBED') live(true,'En vivo'); });
-  setInterval(cargar, 30000);
+  clearInterval(sondeo); sondeo=setInterval(()=>{ cargar(); enviarCola(); }, 30000);
 }
-addEventListener('online',()=>{$('offline').hidden=true;cargar();});
-addEventListener('offline',()=>{$('offline').hidden=false;live(false,'Sin señal');});
+addEventListener('online',()=>{ $('offline').hidden=true; cargar(); enviarCola(); });
+addEventListener('offline',()=>{ $('offline').hidden=false; live(false,'Sin señal'); });
 
-// ---------- vista ----------
-const trDe = oid => S.trab.filter(t=>t.orden_id===oid);
+// ---------- pestañas ----------
+document.querySelector('nav.tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-tab]'); if(b) irA(b.dataset.tab); });
+function irA(tab){
+  S.tab=tab;
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-current', b.dataset.tab===tab?'page':'false'));
+  document.querySelectorAll('main > section[data-p]').forEach(s=>s.hidden = s.dataset.p!==tab);
+  scrollTo(0,0); render();
+}
 function render(){
-  const esps=['TODAS',...new Set(S.ord.map(o=>o.especialidad).filter(Boolean))];
+  const enCola=new Set(S.cola.map(c=>c.id));
+  const pend=S.trab.filter(t=>t.estado==='PENDIENTE' && !enCola.has(t.id) && !CERRADAS.includes((S.ord.find(o=>o.id===t.orden_id)||{}).estado)).length;
+  $('nOrd').hidden=!pend; $('nOrd').textContent=pend;
+  $('cola').hidden=!S.cola.length; $('cola').textContent=`${S.cola.length} cierre(s) guardados en el celular, esperando señal para enviarse.`;
+  if(S.tab==='plan') pintarPlan(); else if(S.tab==='ord') pintarOrdenes(); else if(S.tab==='ace') pintarAceite(); else pintarHist();
+}
+
+// ---------- Plan del día ----------
+function pintarPlan(){
+  const P=S.plan, el=$('pPlan');
+  if(!P){ el.innerHTML=`<div class="empty"><b>Sin plan del día</b>Cuando Frank publique el plan desde la PC aparece aquí.</div>`; return; }
+  const R=P.res||{};
+  const mias=P.u.filter(u=>(u.as||[]).some(esYo));
+  let h=`<h2 class="sec">Plan del ${esc(dia(P.f))}${P.py?' · proyectado':''}</h2>
+    <div class="kpis"><div class="kpi"><b>${R.t||0}</b><span>en taller</span></div><div class="kpi"><b>${R.tr||0}</b><span>trabajos</span></div>
+    <div class="kpi rojo"><b>${R.c||0}</b><span>críticos</span></div><div class="kpi"><b>${mias.length}</b><span>para ti</span></div></div>`;
+  if(mias.length){
+    h+=`<h2 class="sec">Lo tuyo hoy</h2><div class="list">`+mias.map(u=>unidad(u,true)).join('')+`</div>`;
+  } else if (S.me && !S.me.es_admin) {
+    h+=`<p class="sub">Hoy no tienes unidades asignadas en el plan.</p>`;
+  }
+  const gente=(P.cg||[]);
+  if(gente.length){
+    h+=`<h2 class="sec">Quién atiende</h2><div class="orden">`+gente.map(g=>`<div class="per${esYo(g.n)?' yo':''}"><b>${esc(g.n)}</b><span class="meta">${g.h||0}/${g.hd||0} h</span>
+      <small>${esc(CAT[g.c]||g.c||'')} · ${(g.r||[]).length?(g.r||[]).map((p,i)=>`${i+1}· ${esc(p)}`).join('  '):'sin unidad asignada'}</small></div>`).join('')+`</div>`;
+  }
+  const otras=P.u.filter(u=>!mias.includes(u));
+  for(const z of ['TALLER','ARENA']){
+    const zs=otras.filter(u=>u.z===z); if(!zs.length) continue;
+    h+=`<h2 class="sec">${z==='TALLER'?'En el taller':'En la arena · en espera'} (${zs.length})</h2><div class="list">`+zs.map(u=>unidad(u,false)).join('')+`</div>`;
+  }
+  if((P.av||[]).length) h+=`<h2 class="sec">Ojo con esto</h2>`+P.av.map(a=>`<div class="note">${esc(a)}</div>`).join('');
+  el.innerHTML=h;
+}
+function unidad(u, mia){
+  const k='p:'+u.p, op=S.open.has(k)||mia;
+  const ord=S.ord.find(o=>o.placa===u.p && !CERRADAS.includes(o.estado));
+  return `<article class="orden${mia?' mia':''}"><button class="ohead" data-u="${esc(k)}" aria-expanded="${op}">
+    <span class="plate">${esc(u.p)}</span>
+    <span class="ot"><b>${esc(u.ti||'')}</b><small>${u.n||0} pendientes${u.c?` · <span style="color:var(--crit)">${u.c} críticos</span>`:''}${u.ac==='VENCIDO'||u.ac==='CRITICO'?` · aceite ${esc((SEM[u.ac]||u.ac).toLowerCase())}`:''}</small></span>
+    <span class="prog">${(u.as||[]).length?(u.as||[]).map(x=>`<span class="pill tec${esYo(x)?' yo':''}">${esc(x)}</span>`).join(' '):''}</span></button>
+    ${op?`${ord?`<div class="item"><span></span><div class="ib"><button class="btn sm primary" data-ir="${esc(ord.id)}">Abrir ${esc(ord.id)} para cerrar</button></div></div>`:''}
+      ${(u.w||[]).map(w=>`<div class="item"><span class="crit ${critCls(w.k||0)}">${w.k==null?'–':w.k}</span><div class="ib"><span class="desc">${esc(w.x)}</span>
+      <span class="meta"><span>${esc(CAT[w.c]||w.c||'')}</span><span>${w.d||0} d</span>${w.r?`<span>Espera: ${esc(w.r)}</span>`:''}</span></div></div>`).join('')}
+      ${u.mas?`<div class="item"><span></span><span class="meta">y ${u.mas} más</span></div>`:''}`:''}</article>`;
+}
+
+// ---------- Órdenes ----------
+const trDe = oid => S.trab.filter(t=>t.orden_id===oid);
+function pintarOrdenes(){
+  const abiertas=S.ord.filter(o=>!CERRADAS.includes(o.estado));
+  const esps=['TODAS',...new Set(abiertas.map(o=>o.especialidad).filter(Boolean))];
+  if(!esps.includes(S.esp)) S.esp='TODAS';
   $('chips').innerHTML=esps.map(e=>`<button class="chip" data-esp="${esc(e)}" aria-pressed="${S.esp===e}">${e==='TODAS'?'Todas':esc(e)}</button>`).join('');
   $('verCerr').setAttribute('aria-pressed',S.verCerradas);
-  const vis=S.ord.filter(o=>(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||!CERRADAS.includes(o.estado))&&o.estado!=='ANULADA');
-  if(!vis.length){ $('lista').innerHTML=`<div class="empty"><b>No hay órdenes abiertas</b>Las órdenes nuevas aparecen aquí al instante.</div>`; return; }
-  $('lista').innerHTML=vis.map(o=>{ const ts=trDe(o.id).filter(t=>t.estado!=='NO_TRABAJADO'), r=ts.filter(t=>t.estado!=='PENDIENTE').length, op=S.open.has(o.id);
-    return `<article class="orden"><button class="ohead" data-o="${esc(o.id)}" aria-expanded="${op}">
+  const b=sinT(S.bOrd);
+  const enCola=new Map(S.cola.map(c=>[c.id,c]));
+  const vis=S.ord.filter(o=>(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||!CERRADAS.includes(o.estado))&&o.estado!=='ANULADA'
+        &&(!b||sinT(o.placa).includes(b)||sinT(o.id).includes(b)))
+     .filter(o=>S.verCerradas||trDe(o.id).length);
+  if(!vis.length){ $('lista').innerHTML=`<div class="empty"><b>${b?'Nada con esa búsqueda':'No hay órdenes abiertas'}</b>Las órdenes nuevas aparecen aquí al instante.</div>`; return; }
+  $('lista').innerHTML=vis.map(o=>{ const ts=trDe(o.id).filter(t=>t.estado!=='NO_TRABAJADO'), r=ts.filter(t=>t.estado!=='PENDIENTE'||enCola.has(t.id)).length, op=S.open.has(o.id);
+    return `<article class="orden" id="o-${esc(o.id)}"><button class="ohead" data-o="${esc(o.id)}" aria-expanded="${op}">
       <span class="plate">${esc(o.placa)}</span>
       <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
       <span class="prog">${r}/${ts.length}</span></button>
-      ${op?ts.map(item).join(''):''}</article>`; }).join('');
+      ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}</article>`; }).join('');
 }
-function item(t){
-  let acc = t.estado==='PENDIENTE' ? `<div><button class="btn primary sm" data-c="${esc(t.id)}">Cerrar trabajo</button></div>` : '';
+function item(t, cola){
+  const estado = cola ? 'COLA' : t.estado;
+  const acc = (t.estado==='PENDIENTE' && !cola) ? `<div><button class="btn primary sm" data-c="${esc(t.id)}">Cerrar trabajo</button></div>` : '';
   const quien = t.cerrado_por ? `<span>${esc(S.tec[t.cerrado_por]||'Técnico')}</span><span>${fmt(t.cerrado_en)}</span>` : '';
   return `<div class="item${t.estado==='ANULADO'||t.estado==='NO_TRABAJADO'?' anul':''}"><span class="crit ${critCls(t.criticidad)}">${t.criticidad}</span><div class="ib">
     <span class="desc">${esc(t.descripcion)}</span>
-    <span class="meta"><span class="pill e-${t.estado}">${EST[t.estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${quien}</span>
+    <span class="meta"><span class="pill e-${estado}">${EST[estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${quien}</span>
     ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
     ${t.foto_path&&S.urls[t.foto_path]?`<img class="thumb" src="${esc(S.urls[t.foto_path])}" alt="Foto del cierre">`:''}
     ${acc}</div></div>`;
 }
+$('bOrd').addEventListener('input',e=>{ S.bOrd=e.target.value; pintarOrdenes(); });
+
+// ---------- Aceite ----------
+function pintarAceite(){
+  const A=S.ace, el=$('pAce');
+  if(!A){ el.innerHTML=`<div class="empty"><b>Sin status de aceite</b>Cuando Frank lo publique desde la PC aparece aquí.</div>`; return; }
+  const b=sinT(S.bAce);
+  let us=A.u.filter(u=>(!S.semAce||u.s===S.semAce)&&(!b||sinT(u.p).includes(b)||sinT(u.op).includes(b)));
+  us.sort((x,y)=>SEM_ORDEN.indexOf(x.s)-SEM_ORDEN.indexOf(y.s)||(y.pc||0)-(x.pc||0));
+  const R=A.res||{};
+  let h=`<h2 class="sec">Status de aceite${A.sem?` · semana ${esc(A.sem)}`:''}</h2>${A.gen?`<p class="sub">Calculado el ${esc(dia(A.gen))}</p>`:''}
+    <div class="kpis"><div class="kpi rojo"><b>${R.v||0}</b><span>vencidos</span></div><div class="kpi rojo"><b>${R.c||0}</b><span>críticos</span></div>
+    <div class="kpi"><b>${R.x||0}</b><span>próximos</span></div><div class="kpi"><b>${R.ok||0}</b><span>al día</span></div></div>
+    <input type="search" class="buscar" id="bAce" placeholder="Buscar placa u operación" aria-label="Buscar placa u operación" value="${esc(S.bAce)}">
+    <div class="bar2"><div class="chips">`+['',...SEM_ORDEN].filter(s=>!s||A.u.some(u=>u.s===s)).map(s=>`<button class="chip" data-sem="${esc(s)}" aria-pressed="${S.semAce===s}">${s?esc(SEM[s]||s):'Todas'}<span class="n">${s?A.u.filter(u=>u.s===s).length:A.u.length}</span></button>`).join('')+`</div></div><div class="list">`;
+  const color = s => s==='VENCIDO'||s==='CRITICO' ? 'var(--crit)' : s==='PROXIMO' ? 'var(--warn)' : s==='OK' ? 'var(--ok)' : 'var(--muted)';
+  h+= us.length ? us.map(u=>{ const pct=Math.max(0,Math.min(100,Math.round(u.pc||0)));
+    const falta=u.r==null?'':(u.r<0?`pasada por ${miles(Math.abs(u.r))} km`:`le quedan ${miles(u.r)} km`);
+    return `<article class="orden"><div class="ohead" style="cursor:default"><span class="plate">${esc(u.p)}</span>
+      <span class="ot"><b>${esc(u.op||'Sin operación')}</b><small>${esc(falta)}${u.py?` · toca ${esc(dia(u.py))}`:''}${u.uf?` · último cambio ${esc(dia(u.uf))}`:''}</small>
+      <div class="vida"><i style="width:${pct}%;background:${color(u.s)}"></i></div></span>
+      <span class="pill s-${esc(u.s==='SIN DATO'||u.s==='INOPERATIVA'?'SIN':u.s)}">${esc(SEM[u.s]||u.s||'')}</span></div></article>`; }).join('')
+    : `<div class="empty"><b>Nada por aquí</b>Ninguna unidad coincide.</div>`;
+  el.innerHTML=h+`</div>`;
+  const inp=$('bAce'); inp.oninput=e=>{ S.bAce=e.target.value; const pos=e.target.selectionStart; pintarAceite(); const n=$('bAce'); n.focus(); n.setSelectionRange(pos,pos); };
+}
+
+// ---------- Mis trabajos ----------
+function pintarHist(){
+  const el=$('pHist'), adm=!!(S.me&&S.me.es_admin);
+  const enCola=new Map(S.cola.map(c=>[c.id,c]));
+  let ts=S.trab.filter(t=>t.estado!=='PENDIENTE'&&t.estado!=='NO_TRABAJADO'&&t.cerrado_por&&((adm&&S.histTodos)||t.cerrado_por===S.uid));
+  const colaMia=S.trab.filter(t=>enCola.has(t.id));
+  ts.sort((a,b)=>String(b.cerrado_en).localeCompare(String(a.cerrado_en)));
+  const hechos=ts.filter(t=>t.estado==='HECHO').length;
+  let h=`<h2 class="sec">${adm&&S.histTodos?'Trabajos de todos':'Mis trabajos'}</h2><p class="sub">${ts.length} cierres · ${hechos} hechos. Las fotos de órdenes ya cerradas quedan guardadas en la PC del taller.</p>`;
+  if(adm) h+=`<div class="bar2"><div class="chips"><button class="chip" data-hist="0" aria-pressed="${!S.histTodos}">Los míos</button><button class="chip" data-hist="1" aria-pressed="${S.histTodos}">De todos</button></div></div>`;
+  if(colaMia.length) h+=`<h2 class="sec">Por enviar (${colaMia.length})</h2><div class="list"><div class="orden">`+colaMia.map(t=>item(t,enCola.get(t.id))).join('')+`</div></div>`;
+  if(!ts.length){ el.innerHTML=h+`<div class="empty"><b>Todavía no hay cierres</b>Lo que cierres desde aquí queda en tu historial.</div>`; return; }
+  let ult='', html='';
+  for(const t of ts.slice(0,300)){
+    const d=String(t.cerrado_en||'').slice(0,10);
+    if(d!==ult){ if(ult) html+=`</div>`; html+=`<h2 class="sec" style="font-size:16px">${esc(dia(d))}</h2><div class="orden">`; ult=d; }
+    const o=S.ord.find(x=>x.id===t.orden_id)||{};
+    html+=`<div class="item${t.estado==='ANULADO'?' anul':''}"><span class="plate" style="font-size:12px;align-self:start">${esc(o.placa||'')}</span><div class="ib">
+      <span class="desc">${esc(t.descripcion)}</span>
+      <span class="meta"><span class="pill e-${t.estado}">${EST[t.estado]}${t.motivo?' · '+esc(t.motivo):''}</span><span>${esc(t.orden_id)}</span><span>${fmt(t.cerrado_en)}</span>${adm&&S.histTodos?`<span>${esc(S.tec[t.cerrado_por]||'')}</span>`:''}</span>
+      ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
+      ${t.foto_path&&S.urls[t.foto_path]?`<img class="thumb" src="${esc(S.urls[t.foto_path])}" alt="Foto del cierre">`:(t.foto_path&&t.foto_archivada?`<span class="meta">Foto guardada en la PC del taller</span>`:'')}
+    </div></div>`;
+  }
+  el.innerHTML=h+html+`</div>`+(ts.length>300?`<p class="sub">Se muestran los 300 más recientes.</p>`:'');
+}
+
 document.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.dataset.o){ S.open.has(b.dataset.o)?S.open.delete(b.dataset.o):S.open.add(b.dataset.o); render(); }
-  else if(b.dataset.esp){ S.esp=b.dataset.esp; render(); }
-  else if(b.id==='verCerr'){ S.verCerradas=!S.verCerradas; render(); }
+  if(b.dataset.o){ S.open.has(b.dataset.o)?S.open.delete(b.dataset.o):S.open.add(b.dataset.o); pintarOrdenes(); }
+  else if(b.dataset.u){ S.open.has(b.dataset.u)?S.open.delete(b.dataset.u):S.open.add(b.dataset.u); pintarPlan(); }
+  else if(b.dataset.ir){ S.open.add(b.dataset.ir); S.bOrd=''; $('bOrd').value=''; S.esp='TODAS'; irA('ord');
+                         const a=$('o-'+b.dataset.ir); if(a) a.scrollIntoView({block:'start'}); }
+  else if(b.dataset.esp){ S.esp=b.dataset.esp; pintarOrdenes(); }
+  else if(b.dataset.sem!==undefined && b.classList.contains('chip')){ S.semAce=b.dataset.sem; pintarAceite(); }
+  else if(b.dataset.hist!==undefined){ S.histTodos=b.dataset.hist==='1'; pintarHist(); }
+  else if(b.id==='verCerr'){ S.verCerradas=!S.verCerradas; pintarOrdenes(); }
   else if(b.dataset.c) abrir(b.dataset.c);
   else if(b.dataset.v&&S.sheet){ S.sheet.res=b.dataset.v; document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b)); req(); }
+  if(!b.closest('#menu') && b.id!=='bMenu') $('menu').hidden=true;
 });
 
 // ---------- cerrar ----------
 function abrir(id){
-  const t=S.trab.find(x=>x.id===id); const o=S.ord.find(x=>x.id===t.orden_id)||{};
+  const t=S.trab.find(x=>x.id===id); if(!t) return; const o=S.ord.find(x=>x.id===t.orden_id)||{};
   S.sheet={id,res:null,file:null};
   $('shMeta').innerHTML=`<span class="plate">${esc(o.placa)}</span><b>${esc(o.id)}</b>`; $('shDesc').textContent=t.descripcion;
   document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false'));
@@ -281,6 +508,18 @@ async function comprimir(file){
   }
   throw new Error('FOTO_GRANDE');
 }
+// Envía un cierre: primero la foto, después la regla de la nube. La ruta de la foto es fija para ese
+// cierre, así un reintento (por ejemplo desde la cola sin señal) no deja fotos repetidas.
+async function enviar(c){
+  let ruta=null;
+  if(c.blob){
+    ruta=`${c.id}/${c.t}.jpg`;
+    const up=await sb.storage.from('evidencias').upload(ruta, c.blob, {contentType:'image/jpeg', upsert:false});
+    if(up.error && !/exists|Duplicate|409/i.test(up.error.message+(up.error.statusCode||''))) throw up.error;
+  }
+  const { error } = await sb.rpc('cerrar_trabajo',{p_trabajo:c.id,p_estado:c.res,p_comentario:c.com||null,p_motivo:c.mot,p_foto:ruta});
+  if(error){ if(ruta && !esRed(error)) sb.storage.from('evidencias').remove([ruta]).catch(()=>{}); throw error; }  // no deja fotos huérfanas
+}
 $('shOk').onclick = async () => {
   const sh=S.sheet, err=$('shErr'); err.textContent='';
   const com=$('shCom').value.trim(), mot=sh.res==='ANULADO'?$('shMot').value:null;
@@ -288,25 +527,56 @@ $('shOk').onclick = async () => {
   if(sh.res==='ANULADO'&&!mot) return err.textContent=ERRORES.FALTA_MOTIVO;
   if((sh.res==='NO_SE_PUDO'||mot==='Otro')&&!com) return err.textContent=ERRORES.FALTA_COMENTARIO;
   if(sh.res==='HECHO'&&!sh.file) return err.textContent=ERRORES.FALTA_FOTO;
-  if(!navigator.onLine) return err.textContent='Sin señal. Intenta de nuevo cuando vuelva la conexión.';
   const btn=$('shOk'); btn.disabled=true;
+  let c;
   try{
-    let ruta=null;
-    if(sh.file){ btn.textContent='Subiendo foto…'; const blob=await comprimir(sh.file);
-      ruta=`${sh.id}/${Date.now()}.jpg`;
-      const up=await sb.storage.from('evidencias').upload(ruta, blob, {contentType:'image/jpeg', upsert:false});
-      if(up.error) throw up.error; }
-    btn.textContent='Guardando…';
-    const { error } = await sb.rpc('cerrar_trabajo',{p_trabajo:sh.id,p_estado:sh.res,p_comentario:com||null,p_motivo:mot,p_foto:ruta});
-    if(error){ if(ruta) sb.storage.from('evidencias').remove([ruta]).catch(()=>{}); throw error; }  // no deja fotos huérfanas
-    cerrarHoja(); toast(sh.res==='HECHO'?'Trabajo cerrado como hecho.':sh.res==='ANULADO'?'Trabajo anulado.':'Registrado como no se pudo.');
+    btn.textContent = sh.file ? 'Preparando foto…' : 'Guardando…';
+    c={id:sh.id,res:sh.res,com,mot,t:Date.now(),blob: sh.file ? await comprimir(sh.file) : null};
+  }catch(e){ err.textContent=ERRORES[codigoDe(e)]||'No se pudo leer la foto. Tómala otra vez.'; btn.disabled=false; btn.textContent='Guardar cierre'; return; }
+  if(!navigator.onLine){ await encolar(c); cerrarHoja(); toast('Sin señal: el cierre quedó guardado y se envía solo.'); render(); return; }
+  try{
+    btn.textContent='Guardando…'; await enviar(c);
+    cerrarHoja(); toast(c.res==='HECHO'?'Trabajo cerrado como hecho.':c.res==='ANULADO'?'Trabajo anulado.':'Registrado como no se pudo.');
     cargar();
   }catch(e){
-    const c=codigoDe(e); err.textContent = ERRORES[c] || 'No se pudo guardar. Revisa la señal e inténtalo otra vez.';
-    if(c==='YA_CERRADO'){ cerrarHoja(); toast(ERRORES.YA_CERRADO); cargar(); }
+    if(esRed(e)){ await encolar(c); cerrarHoja(); toast('Se cortó la señal: el cierre quedó guardado y se envía solo.'); render(); return; }
+    const k=codigoDe(e); err.textContent = ERRORES[k] || 'No se pudo guardar. Inténtalo otra vez.';
+    if(k==='YA_CERRADO'){ cerrarHoja(); toast(ERRORES.YA_CERRADO); cargar(); }
     btn.disabled=false; btn.textContent='Guardar cierre';
   }
 };
+
+// ---------- cierres sin señal: se guardan en el celular y salen solos ----------
+let DB=null;
+function abrirCola(){
+  return new Promise(ok=>{
+    try{ const r=indexedDB.open('timco-taller',1);
+      r.onupgradeneeded=()=>r.result.createObjectStore('cola',{keyPath:'id'});
+      r.onsuccess=()=>{ DB=r.result; leerCola().then(ok); }; r.onerror=()=>ok(); }
+    catch(_){ ok(); }
+  });
+}
+function tx(modo){ return DB.transaction('cola',modo).objectStore('cola'); }
+function leerCola(){ return new Promise(ok=>{ if(!DB) return ok(); const q=tx('readonly').getAll(); q.onsuccess=()=>{ S.cola=q.result||[]; ok(); }; q.onerror=()=>ok(); }); }
+function encolar(c){ return new Promise(ok=>{ if(!DB){ S.cola.push(c); return ok(); } const q=tx('readwrite').put(c); q.onsuccess=()=>leerCola().then(ok); q.onerror=()=>ok(); }); }
+function sacar(id){ return new Promise(ok=>{ if(!DB){ S.cola=S.cola.filter(x=>x.id!==id); return ok(); } const q=tx('readwrite').delete(id); q.onsuccess=()=>leerCola().then(ok); q.onerror=()=>ok(); }); }
+let enviando=false;
+async function enviarCola(){
+  if(enviando||!S.cola.length||!navigator.onLine) return;
+  enviando=true; let n=0;
+  try{
+    for(const c of [...S.cola]){
+      try{ await enviar(c); await sacar(c.id); n++; }
+      catch(e){
+        if(esRed(e)) break;                                  // sin señal otra vez: se reintenta luego
+        const k=codigoDe(e); await sacar(c.id);              // la nube lo rechazó: no se reintenta para siempre
+        toast(`Un cierre guardado no se pudo enviar: ${ERRORES[k]||'revísalo'}`);
+      }
+    }
+  } finally { enviando=false; }
+  if(n){ toast(`${n} cierre(s) guardados se enviaron.`); cargar(); } else render();
+}
+
 sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.reload(); });
 arrancar();
 </script>
