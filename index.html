@@ -381,6 +381,7 @@ function unidad(u, mia){
 
 // ---------- Órdenes ----------
 const trDe = oid => S.trab.filter(t=>t.orden_id===oid);
+const esAdm = () => !!(S.me && S.me.es_admin);
 function pintarOrdenes(){
   const abiertas=S.ord.filter(o=>!CERRADAS.includes(o.estado));
   const esps=['TODAS',...new Set(abiertas.map(o=>o.especialidad).filter(Boolean))];
@@ -398,7 +399,8 @@ function pintarOrdenes(){
       <span class="plate">${esc(o.placa)}</span>
       <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
       <span class="prog">${r}/${ts.length}</span></button>
-      ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}</article>`; }).join('');
+      ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}
+      ${op&&esAdm()&&ts.some(t=>t.estado==='PENDIENTE'&&!enCola.has(t.id))?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" data-oc="${esc(o.id)}" data-ov="HECHO">Finalizar toda la orden</button><button class="btn sm" data-oc="${esc(o.id)}" data-ov="ANULADO">Anular toda la orden</button></div>`:''}</article>`; }).join('');
 }
 function item(t, cola){
   const estado = cola ? 'COLA' : t.estado;
@@ -476,6 +478,7 @@ document.addEventListener('click',e=>{
   else if(b.dataset.hist!==undefined){ S.histTodos=b.dataset.hist==='1'; pintarHist(); }
   else if(b.id==='verCerr'){ S.verCerradas=!S.verCerradas; pintarOrdenes(); }
   else if(b.dataset.c) abrir(b.dataset.c);
+  else if(b.dataset.oc) abrirOrden(b.dataset.oc, b.dataset.ov);
   else if(b.dataset.v&&S.sheet){ S.sheet.res=b.dataset.v; document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b)); req(); }
   if(!b.closest('#menu') && b.id!=='bMenu') $('menu').hidden=true;
 });
@@ -489,10 +492,22 @@ function abrir(id){
   $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shPrev').hidden=true; $('shErr').textContent='';
   $('shOk').disabled=false; $('shOk').textContent='Guardar cierre'; req(); $('sheet').hidden=false;
 }
+// El administrador cierra la orden entera de una vez (p. ej. un auxilio en ruta, de noche, desde su casa).
+function abrirOrden(oid, res){
+  const o=S.ord.find(x=>x.id===oid)||{}; const pend=trDe(oid).filter(t=>t.estado==='PENDIENTE');
+  if(!pend.length) return;
+  S.sheet={orden:oid,ids:pend.map(t=>t.id),res,file:null};
+  $('shMeta').innerHTML=`<span class="plate">${esc(o.placa)}</span><b>${esc(o.id)}</b>`;
+  $('shDesc').textContent=(res==='HECHO'?'Finalizar':'Anular')+` los ${pend.length} trabajo(s) pendientes de esta orden.`;
+  document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===res)));
+  $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shPrev').hidden=true; $('shErr').textContent='';
+  $('shOk').disabled=false; $('shOk').textContent='Guardar cierre'; req(); $('sheet').hidden=false;
+}
 function cerrarHoja(){ $('sheet').hidden=true; S.sheet=null; }
 function req(){ const r=S.sheet&&S.sheet.res; $('shErr').textContent=''; $('motBox').hidden=r!=='ANULADO';
   $('comReq').textContent=(r==='NO_SE_PUDO'||(r==='ANULADO'&&$('shMot').value==='Otro'))?'(obligatorio)':'(opcional)';
-  $('fotoReq').textContent=r==='HECHO'?'(obligatoria)':'(opcional)'; }
+  $('fotoReq').textContent=r==='HECHO'?(esAdm()?'(opcional para el administrador; sin foto, escribe qué se hizo)':'(obligatoria)'):'(opcional)';
+  if(r==='HECHO'&&esAdm()) $('comReq').textContent='(obligatorio si no hay foto)'; }
 $('shMot').onchange=req; $('shNo').onclick=cerrarHoja; $('shBg').onclick=cerrarHoja;
 $('shFoto').onchange=e=>{ const f=e.target.files[0]; S.sheet.file=f||null; if(f){ $('shPrev').src=URL.createObjectURL(f); $('shPrev').hidden=false; } };
 // Estándar de fotos: lado largo 1600 px, JPEG 82 %, orientación corregida, sin GPS ni datos del teléfono.
@@ -538,8 +553,10 @@ $('shOk').onclick = async () => {
   if(!sh.res) return err.textContent='Elige Hecho, No se pudo o Anular.';
   if(sh.res==='ANULADO'&&!mot) return err.textContent=ERRORES.FALTA_MOTIVO;
   if((sh.res==='NO_SE_PUDO'||mot==='Otro')&&!com) return err.textContent=ERRORES.FALTA_COMENTARIO;
-  if(sh.res==='HECHO'&&!sh.file) return err.textContent=ERRORES.FALTA_FOTO;
+  if(sh.res==='HECHO'&&!sh.file&&!esAdm()) return err.textContent=ERRORES.FALTA_FOTO;
+  if(sh.res==='HECHO'&&!sh.file&&esAdm()&&!com) return err.textContent='Sin foto, escribe qué se hizo.';
   const btn=$('shOk'); btn.disabled=true;
+  if(sh.orden){ return cerrarOrdenEntera(sh, com, mot, btn, err); }
   let c;
   try{
     btn.textContent = sh.file ? 'Preparando foto…' : 'Guardando…';
@@ -557,6 +574,22 @@ $('shOk').onclick = async () => {
     btn.disabled=false; btn.textContent='Guardar cierre';
   }
 };
+
+async function cerrarOrdenEntera(sh, com, mot, btn, err){
+  let blob=null;
+  try{ if(sh.file){ btn.textContent='Preparando foto…'; blob=await comprimir(sh.file); } }
+  catch(e){ err.textContent=ERRORES[codigoDe(e)]||'No se pudo leer la foto.'; btn.disabled=false; btn.textContent='Guardar cierre'; return; }
+  if(!navigator.onLine){ err.textContent='Para cerrar la orden entera hace falta señal.'; btn.disabled=false; btn.textContent='Guardar cierre'; return; }
+  let hechos=0; const fallos=[];
+  for(const [n,id] of sh.ids.entries()){
+    btn.textContent=`Guardando ${n+1} de ${sh.ids.length}…`;
+    try{ await enviar({id,res:sh.res,com,mot,t:Date.now()+n,blob}); hechos++; }
+    catch(e){ const k=codigoDe(e); if(k!=='YA_CERRADO') fallos.push(ERRORES[k]||'error'); }
+  }
+  cerrarHoja(); cargar();
+  toast(fallos.length ? `${hechos} cerrados; ${fallos.length} no se pudieron (${fallos[0]}).`
+                      : `Orden ${sh.res==='HECHO'?'finalizada':'anulada'}: ${hechos} trabajo(s).`);
+}
 
 // ---------- cierres sin señal: se guardan en el celular y salen solos ----------
 let DB=null;
