@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="google" content="notranslate">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://*.supabase.co wss://*.supabase.co; img-src 'self' blob: data: https://*.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#1f3a56">
 <title>TIMCO · Taller</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
-/* Página del técnico (Generador 2.53): Plan del día · Órdenes · Aceite · Mis trabajos.
+/* Página del técnico (Generador 2.56): Plan del día (semana, por categoría, avance) · Órdenes · Aceite · Mis trabajos · Auxilios.
    Barra de pestañas abajo, al alcance del pulgar; la orden se cierra en una hoja que sube. */
 :root{
   --bg:#eef1f4; --surface:#fff; --surface-2:#f5f7f9; --line:#d6dce3; --fg:#16202b; --muted:#5b6876;
@@ -38,6 +40,7 @@ h1 span{color:var(--accent)}
 .btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 14px var(--f-body);padding:10px 14px;border-radius:8px;cursor:pointer}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.sm{padding:6px 10px;font-size:13px}
+.fbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.fbtns .btn{display:inline-block}
 .btn:disabled{opacity:.55}
 .btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.ohead:focus-visible,nav button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .login{max-width:380px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:grid;gap:14px}
@@ -47,6 +50,8 @@ input[type=email],input[type=password],input[type=search],textarea,select{width:
 .err{color:var(--crit);font-size:14px;min-height:1em}
 .note{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px}
 .note.ok{background:var(--ok-bg);color:var(--ok)}
+.nplan{display:flex;gap:10px;align-items:flex-start;margin:0 12px 10px;padding:8px 10px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px;line-height:1.4}
+.nplan span{flex:1;white-space:pre-wrap;overflow-wrap:anywhere}.nplan b{font-weight:700}
 .bar2{display:flex;gap:8px;align-items:center;justify-content:space-between;padding-block:12px 4px;flex-wrap:wrap}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;max-width:100%}
 .chip{flex:none;appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 13px var(--f-body);padding:6px 12px;border-radius:999px;cursor:pointer}
@@ -96,7 +101,7 @@ h2.sec{font-family:var(--f-display);font-size:19px;margin:18px 0 8px;letter-spac
 .per.yo{background:var(--warn-bg)}
 .buscar{margin-top:12px}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-block:6px}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding-block:6px}
 nav.tabs button{appearance:none;border:0;background:none;color:var(--muted);font:600 12px var(--f-body);display:grid;justify-items:center;gap:2px;padding:6px 2px;border-radius:8px;cursor:pointer;position:relative}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="page"]{color:var(--steel);background:var(--surface-2)}
@@ -113,11 +118,31 @@ nav.tabs .badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(
 textarea{min-height:76px}
 .foto{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .foto img{width:92px;height:92px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.foto .ft{position:relative}.foto .ft button{position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;border:0;background:var(--crit);color:#fff;font:700 14px var(--f-body);cursor:pointer}
 .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px)}
 .menu{position:absolute;right:16px;top:52px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:grid;min-width:200px;z-index:8;overflow:hidden}
 .menu button{appearance:none;border:0;background:none;color:var(--fg);text-align:left;font:500 15px var(--f-body);padding:12px 14px;cursor:pointer;border-top:1px solid var(--line)}
 .menu button:first-child{border-top:0}
+/* 2.56: avance del día, planes por fecha, auxilios y registros del administrador */
+.av{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px;display:grid;gap:8px}
+.av .big{display:flex;align-items:baseline;gap:10px}
+.av .big b{font-family:var(--f-mono);font-size:30px;line-height:1}
+.av .big span{color:var(--muted);font-size:13px}
+.barra{height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--ok)}
+.barra.md i{background:var(--warn)}.barra.lo i{background:var(--crit)}
+.avl{display:grid;grid-template-columns:minmax(90px,auto) 1fr auto;gap:4px 10px;align-items:center;font-size:13px}
+.avl .n{font-family:var(--f-mono);color:var(--muted)}
+.proy{margin-top:10px;padding:8px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-weight:600;font-size:14px}
+.dias{font:600 11px var(--f-body);color:var(--warn);background:var(--warn-bg);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.adm{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.frm{display:grid;gap:12px}
+.frm .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);font:16px var(--f-body);padding:11px}
+.e-EN_CAMINO,.e-REGISTRADO{background:var(--warn-bg);color:var(--warn)}
+.e-ATENDIDO,.e-REMOLCADO{background:var(--ok-bg);color:var(--ok)}
+.e-CANCELADO{background:var(--surface-2);color:var(--muted);border:1px dashed var(--muted)}
 </style>
 </head>
 <body>
@@ -159,12 +184,14 @@ textarea{min-height:76px}
     </section>
     <section id="pAce" data-p="ace" hidden></section>
     <section id="pHist" data-p="hist" hidden></section>
+    <section id="pAux" data-p="aux" hidden></section>
   </main>
   <nav class="tabs" aria-label="Secciones"><div class="wrap">
     <button data-tab="plan" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Plan del día</button>
     <button data-tab="ord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h5v5M21 3l-9 9"/><path d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>Órdenes<span class="badge" id="nOrd" hidden></span></button>
     <button data-tab="ace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>Aceite</button>
     <button data-tab="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Mis trabajos</button>
+    <button data-tab="aux"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Auxilios<span class="badge" id="nAux" hidden></span></button>
   </div></nav>
 </section>
 
@@ -184,8 +211,16 @@ textarea{min-height:76px}
         <select id="shMot"><option value="">Elige un motivo</option><option>Repetido</option><option>Ya estaba hecho</option><option>No corresponde a la unidad</option><option>Otro</option></select></div>
       <div><label class="lb" for="shCom">Comentario <span id="comReq"></span></label>
         <textarea id="shCom" placeholder="Qué se hizo, repuesto usado o por qué no se pudo"></textarea></div>
-      <div><label class="lb" for="shFoto">Foto <span id="fotoReq"></span></label>
-        <div class="foto"><input type="file" id="shFoto" accept="image/*" capture="environment"><img id="shPrev" alt="Vista previa" hidden></div></div>
+      <div id="finBox" hidden class="frm">
+        <div><label class="lb" for="shFecha">Fecha en que se terminó</label><input type="date" id="shFecha"></div>
+        <div><label class="lb">¿Lo hiciste solo o acompañado?</label>
+          <div class="chips"><button type="button" class="chip" data-solo="1" aria-pressed="true">Solo</button><button type="button" class="chip" data-solo="0" aria-pressed="false">Acompañado</button></div>
+          <div class="chips" id="conBox" hidden style="flex-wrap:wrap;margin-top:8px"></div></div>
+      </div>
+      <div><label class="lb" for="shFoto">Fotos <span id="fotoReq"></span></label>
+        <div class="foto" id="shFotos"></div>
+        <div class="fbtns"><label class="btn sm">Tomar foto<input type="file" id="shCam" accept="image/*" capture="environment" hidden></label><label class="btn sm">Elegir de la galería<input type="file" id="shFoto" accept="image/*,.jpg,.jpeg,.png,.heic,.heif,.webp" multiple hidden></label></div>
+        <span class="meta" id="shNF"></span></div>
       <div class="err" id="shErr" role="alert"></div>
       <div class="actions"><button class="btn" id="shNo">Cancelar</button><button class="btn primary" id="shOk">Guardar cierre</button></div>
     </div>
@@ -204,6 +239,31 @@ textarea{min-height:76px}
     </form>
   </div>
 </div>
+<div id="shReg" hidden>
+  <div class="sheet-bg" data-cerrar="reg"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rgT">
+    <form class="wrap frm" id="fReg">
+      <h3 id="rgT">Anotar</h3>
+      <div id="rgBody" class="frm"></div>
+      <div class="err" id="rgErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="button" data-cerrar="reg">Cancelar</button><button class="btn primary" type="submit" id="rgOk">Guardar</button></div>
+    </form>
+  </div>
+</div>
+<div id="shNota" hidden>
+  <div class="sheet-bg" data-cerrar="nota"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="nT">
+    <form class="wrap frm" id="fNota">
+      <div><h3 id="nT">Nota del plan</h3><p class="sub" id="nSub"></p></div>
+      <div><label class="lb" for="nTxt">Descripción · solo la ven los administradores</label>
+        <textarea id="nTxt" maxlength="300" placeholder="Por ejemplo: llega el repuesto a las 10, coordinar con operaciones"></textarea>
+        <span class="meta" id="nCnt"></span></div>
+      <div class="err" id="nErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="button" id="nBorra" hidden>Quitar nota</button><button class="btn" type="button" data-cerrar="nota">Cancelar</button><button class="btn primary" type="submit" id="nOk">Guardar</button></div>
+    </form>
+  </div>
+</div>
+<datalist id="dlFlota"></datalist><datalist id="dlTec"></datalist>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -223,10 +283,15 @@ const ERRORES = {
   FALTA_COMENTARIO:'Escribe un comentario.', FALTA_MOTIVO:'Elige el motivo de la anulación.',
   NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar este trabajo.', NO_EXISTE:'Ese trabajo ya no existe.',
   FOTO_INVALIDA:'La foto no corresponde a este trabajo. Vuelve a tomarla.',
-  FOTO_GRANDE:'La foto es demasiado pesada. Tómala de nuevo con buena luz.'
+  FOTO_GRANDE:'La foto es demasiado pesada. Tómala de nuevo con buena luz.',
+  FOTO_FORMATO:'Esa foto no se pudo abrir (puede estar en formato HEIC). Elige otra o tómala con «Tomar foto».'
 };
 const S = { ord:[], trab:[], tec:{}, me:null, uid:null, plan:null, ace:null, esp:'TODAS', verCerradas:false,
-            open:new Set(), sheet:null, urls:{}, tab:'plan', bOrd:'', semAce:'', bAce:'', histTodos:false, cola:[] };
+            open:new Set(), sheet:null, urls:{}, tab:'plan', bOrd:'', semAce:'', bAce:'', histTodos:false, cola:[],
+            planes:[], dia:'', verTec:'', verCat:'TODAS', flota:{}, reg:[], est:[], porPend:{}, reg_ok:true, notas:{}, fPlan:'' };
+const hoyISO = () => { const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+const diasDesde = iso => { if(!iso) return 0; return Math.max(1, Math.floor((new Date(hoyISO()+'T12:00:00')-new Date(String(iso).slice(0,10)+'T12:00:00'))/86400000)+1); };
+const AUXE = {REGISTRADO:'Registrado',EN_CAMINO:'En camino',ATENDIDO:'Atendido',REMOLCADO:'Remolcado',CANCELADO:'Cancelado'};
 const critCls = c => c>=8?'c-hi':c>=5?'c-md':'c-lo';
 const fmt = iso => iso ? new Date(iso).toLocaleString('es-PE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
 const dia = iso => { if(!iso) return ''; const d=new Date(String(iso).slice(0,10)+'T12:00:00'); return d.toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}); };
@@ -259,8 +324,14 @@ $('fLogin').onsubmit = async e => {
 $('salir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 $('bMenu').onclick = () => { const m=$('menu'); m.hidden=!m.hidden; $('bMenu').setAttribute('aria-expanded', !m.hidden); };
 $('mRecargar').onclick = () => { $('menu').hidden=true; cargar(); };
+function pedirClaveNueva(){
+  S.claveObligatoria=true; $('cT').textContent='Crea tu propia contraseña';
+  $('cErr').textContent='Por seguridad, cambia la contraseña que te dieron por una que solo tú sepas (8 o más caracteres).';
+  document.querySelectorAll('[data-cerrar="clave"]').forEach(b=>b.hidden=b.tagName==='BUTTON');
+  $('c1').value=''; $('c2').value=''; $('shClave').hidden=false;
+}
 $('mClave').onclick = () => { $('menu').hidden=true; $('c1').value=''; $('c2').value=''; $('cErr').textContent=''; $('shClave').hidden=false; };
-document.querySelectorAll('[data-cerrar="clave"]').forEach(b=>b.onclick=()=>$('shClave').hidden=true);
+document.querySelectorAll('[data-cerrar="clave"]').forEach(b=>b.onclick=()=>{ if(!S.claveObligatoria) $('shClave').hidden=true; });
 $('fClave').onsubmit = async e => {
   e.preventDefault(); const a=$('c1').value, b=$('c2').value;
   if(a.length<8) return $('cErr').textContent='Debe tener al menos 8 caracteres.';
@@ -269,6 +340,9 @@ $('fClave').onsubmit = async e => {
   const { error } = await sb.auth.updateUser({ password:a });
   $('cOk').disabled=false;
   if(error) return $('cErr').textContent = /different|same/i.test(error.message) ? 'Usa una contraseña distinta a la actual.' : 'No se pudo cambiar. Revisa la señal.';
+  if(S.claveObligatoria){ try{ await sb.rpc('marcar_clave_cambiada'); }catch(_){}
+    S.claveObligatoria=false; if(S.me) S.me.clave_cambiada=true; $('cT').textContent='Cambiar contraseña';
+    document.querySelectorAll('[data-cerrar="clave"]').forEach(b=>b.hidden=false); }
   $('shClave').hidden=true; toast('Contraseña cambiada.');
 };
 
@@ -287,25 +361,42 @@ async function todo(armar){
 }
 async function cargar(){
   try{
-    const [o,t,tc,pb] = await Promise.all([
+    const desdeReg=new Date(Date.now()-45*86400000).toISOString().slice(0,10);
+    const [o,t,tc,pb,rg,es,np] = await Promise.all([
       todo(()=>sb.from('ordenes').select('*').like('id','OS-%').order('id')),
       todo(()=>sb.from('trabajos').select('*').like('orden_id','OS-%').order('criticidad',{ascending:false}).order('id')),
       sb.from('tecnicos').select('*'),
-      sb.from('publicaciones').select('clave,datos,actualizado')]);
+      sb.from('publicaciones').select('clave,datos,actualizado'),
+      sb.from('registros').select('*').gte('fecha',desdeReg).order('creado_en',{ascending:false}).limit(500),
+      sb.from('estadias').select('*').eq('activo',true),
+      // 2.58: notas del administrador en el plan (la nube solo se las da a los administradores).
+      sb.from('notas_plan').select('fecha,placa,nota').gte('fecha',new Date(Date.now()-21*86400000).toISOString().slice(0,10))]);
     if(o.error||t.error) throw (o.error||t.error);
     S.ord=o.data||[]; S.trab=t.data||[];
     const tecs=tc.data||[]; S.tec=Object.fromEntries(tecs.map(x=>[x.id,x.nombre]));
-    S.me=tecs.find(x=>x.id===S.uid)||null;
+    S.tecs=tecs; S.me=tecs.find(x=>x.id===S.uid)||null;
+    // Seguridad (2.57): la contraseña que se dictó al darlo de alta se cambia al primer ingreso.
+    if(S.me && S.me.clave_cambiada===false && $('shClave').hidden) pedirClaveNueva();
     const pub=Object.fromEntries((pb.data||[]).map(x=>[x.clave,x]));
     S.plan=(pub.plan&&pub.plan.datos&&pub.plan.datos.u)?pub.plan.datos:null;
     S.ace=(pub.aceite&&pub.aceite.datos&&pub.aceite.datos.u)?pub.aceite.datos:null;
+    // Los planes de la semana (hoy y lo proyectado). Si la PC todavía no los publica, el de siempre.
+    const sem=(pub.planes&&pub.planes.datos&&pub.planes.datos.d)||[];
+    S.planes=sem.length?sem:(S.plan?[{...S.plan,hoy:1}]:[]);
+    if(!S.planes.some(p=>p.f===S.dia)){ const h=S.planes.filter(p=>p.hoy); S.dia=(h.length?h[h.length-1]:S.planes[0]||{}).f||''; }
+    S.flota=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.ti]));
+    S.porPend={}; for(const x of S.trab) if(x.pendiente_id){ const a=S.porPend[x.pendiente_id]; if(!a||x.estado==='HECHO'||(x.estado==='ANULADO'&&a!=='HECHO')) S.porPend[x.pendiente_id]=x.estado; }
+    S.reg_ok=!rg.error; S.reg=rg.data||[]; S.est=es.data||[];
+    S.notas=Object.fromEntries(((np&&!np.error&&np.data)||[]).filter(n=>n.nota).map(n=>[n.fecha+'|'+n.placa,n.nota]));
+    $('dlFlota').innerHTML=Object.keys(S.flota).map(p=>`<option value="${esc(p)}">`).join('');
+    $('dlTec').innerHTML=tecs.filter(x=>x.activo!==false).map(x=>`<option value="${esc(x.nombre)}">`).join('');
     $('yo').textContent = S.me ? (S.me.nombre + (S.me.es_admin ? ' · Administrador' : (S.me.especialidad ? ' · '+S.me.especialidad : ''))) : '';
     live(true,'En vivo'); await firmarFotos();
   }catch(e){ live(false, navigator.onLine ? 'Sin conexión' : 'Sin señal'); }
   render();
 }
 async function firmarFotos(){
-  const faltan=[...new Set(S.trab.filter(t=>!t.foto_archivada).map(t=>t.foto_path).filter(p=>p&&!S.urls[p]))];
+  const faltan=[...new Set(S.trab.filter(t=>!t.foto_archivada).flatMap(t=>[t.foto_path,...(t.fotos||[])]).filter(p=>p&&!S.urls[p]))];
   if(!faltan.length) return;
   try{ const { data } = await sb.storage.from('evidencias').createSignedUrls(faltan, 3600);
     (data||[]).forEach(d=>{ if(d.signedUrl) S.urls[d.path]=d.signedUrl; }); }catch(_){}
@@ -317,6 +408,9 @@ function suscribir(){
     .on('postgres_changes',{event:'*',schema:'public',table:'trabajos'},pronto)
     .on('postgres_changes',{event:'*',schema:'public',table:'ordenes'},pronto)
     .on('postgres_changes',{event:'*',schema:'public',table:'publicaciones'},pronto)
+    .on('postgres_changes',{event:'*',schema:'public',table:'registros'},pronto)
+    .on('postgres_changes',{event:'*',schema:'public',table:'estadias'},pronto)
+    .on('postgres_changes',{event:'*',schema:'public',table:'notas_plan'},pronto)
     .subscribe(st=>{ if(st==='SUBSCRIBED') live(true,'En vivo'); });
   clearInterval(sondeo); sondeo=setInterval(()=>{ cargar(); enviarCola(); }, 30000);
 }
@@ -333,74 +427,173 @@ function irA(tab){
 }
 function render(){
   const enCola=new Set(S.cola.map(c=>c.id));
-  const pend=S.trab.filter(t=>t.estado==='PENDIENTE' && !enCola.has(t.id) && !CERRADAS.includes((S.ord.find(o=>o.id===t.orden_id)||{}).estado)).length;
+  const pend=S.trab.filter(t=>{ const o=S.ord.find(o=>o.id===t.orden_id)||{}; return t.estado==='PENDIENTE' && !enCola.has(t.id) && !CERRADAS.includes(o.estado) && o.id && ordMia(o); }).length;
   $('nOrd').hidden=!pend; $('nOrd').textContent=pend;
   $('cola').hidden=!S.cola.length; $('cola').textContent=`${S.cola.length} cierre(s) guardados en el celular, esperando señal para enviarse.`;
-  if(S.tab==='plan') pintarPlan(); else if(S.tab==='ord') pintarOrdenes(); else if(S.tab==='ace') pintarAceite(); else pintarHist();
+  const auxAct=S.reg.filter(r=>r.tipo==='AUXILIO'&&(r.estado==='EN_CAMINO'||r.estado==='REGISTRADO')).length;
+  $('nAux').hidden=!auxAct; $('nAux').textContent=auxAct;
+  if(S.tab==='plan') pintarPlan(); else if(S.tab==='ord') pintarOrdenes(); else if(S.tab==='ace') pintarAceite(); else if(S.tab==='aux') pintarAux(); else pintarHist();
 }
 
 // ---------- Plan del día ----------
+// 2.56: los planes de la semana (hoy y lo proyectado), separados por categoría. El técnico ve solo
+// lo suyo (sus placas y su especialidad); el administrador ve todo y puede mirar a cada técnico.
+// El avance se calcula en vivo: un trabajo del plan está hecho si la PC ya lo tiene finalizado o si
+// alguien lo cerró HECHO aquí (su pendiente en la nube es G-<uid>).
+const misEsps = () => { const e=sinT(S.me&&S.me.especialidad||''); return Object.keys(CAT).filter(k=>e.includes(k)); };
+function estW(w){
+  if(w.xx) return 'x'; if(w.h) return 'h';
+  const e=w.i&&S.porPend['G-'+w.i];
+  return e==='HECHO'?'h':e==='ANULADO'?'x':'';
+}
+function cuenta(pares){ let h=0,t=0; for(const w of pares){ const e=estW(w); if(e==='x') continue; t++; if(e==='h') h++; } return {h,t,p:t?Math.round(100*h/t):0}; }
+const barra = (a) => `<div class="barra ${a.p>=80?'':a.p>=40?'md':'lo'}"><i style="width:${a.p}%"></i></div>`;
+// Lo de un técnico: sus placas y, dentro de ellas, los trabajos de su especialidad.
+function deTecnico(P, nombre, cats){
+  const us=P.u.filter(u=>(u.as||[]).some(x=>mismoNombre(x,nombre)));
+  return us.map(u=>({u, ws:(u.w||[]).filter(w=>!cats.length||cats.includes(w.c))})).filter(x=>x.ws.length);
+}
+function catsDe(P, nombre){
+  const g=(P.cg||[]).find(x=>mismoNombre(x.n,nombre));
+  if(S.me && mismoNombre(nombre,S.me.nombre) && misEsps().length) return misEsps();
+  return g&&g.c?[g.c]:[];
+}
+function porCategoria(lista){
+  const m={};
+  for(const {u,ws} of lista) for(const w of ws){ const c=w.c||'OTROS'; (m[c]=m[c]||new Map()); if(!m[c].has(u.p)) m[c].set(u.p,{u,ws:[]}); m[c].get(u.p).ws.push(w); }
+  return Object.entries(m).sort((a,b)=>b[1].size-a[1].size);
+}
 function pintarPlan(){
-  const P=S.plan, el=$('pPlan');
-  if(!P){ el.innerHTML=`<div class="empty"><b>Sin plan del día</b>Cuando Frank publique el plan desde la PC aparece aquí.</div>`; return; }
-  const R=P.res||{};
-  const mias=P.u.filter(u=>(u.as||[]).some(esYo));
-  let h=`<h2 class="sec">Plan del ${esc(dia(P.f))}${P.py?' · proyectado':''}</h2>
-    <div class="kpis"><div class="kpi"><b>${R.t||0}</b><span>en taller</span></div><div class="kpi"><b>${R.tr||0}</b><span>trabajos</span></div>
-    <div class="kpi rojo"><b>${R.c||0}</b><span>críticos</span></div><div class="kpi"><b>${mias.length}</b><span>para ti</span></div></div>`;
-  if(mias.length){
-    h+=`<h2 class="sec">Lo tuyo hoy</h2><div class="list">`+mias.map(u=>unidad(u,true)).join('')+`</div>`;
-  } else if (S.me && !S.me.es_admin) {
-    h+=`<p class="sub">Hoy no tienes unidades asignadas en el plan.</p>`;
+  const el=$('pPlan');
+  if(!S.planes.length){ el.innerHTML=`<div class="empty"><b>Sin plan del día</b>Cuando Frank publique el plan desde la PC aparece aquí.</div>`; return; }
+  const P=S.planes.find(p=>p.f===S.dia)||S.planes[0], adm=esAdm(), hoy=hoyISO();
+  const futuro=P.f>hoy, R=P.res||{}; S.fPlan=P.f;
+  let h=`<div class="bar2"><div class="chips">`+S.planes.map(p=>`<button class="chip" data-dia="${esc(p.f)}" aria-pressed="${p.f===P.f}">${p.f===hoy?'Hoy':p.hoy?'Último · '+esc(dia(p.f)):esc(dia(p.f))}</button>`).join('')+`</div></div>`;
+  h+=`<h2 class="sec">Plan del ${esc(dia(P.f))}</h2>`;
+  if(futuro||P.py) h+=`<div class="proy">PROYECTADO · puede cambiar si hay imprevistos</div>`;
+  else if(P.f<hoy) h+=`<div class="proy">${P.hoy?'Todavía no se publica el plan de hoy: este es el último que llegó.':'Plan pasado: así quedó el avance de ese día.'}</div>`;
+  // ¿De quién se mira el plan?
+  const nombres=(P.cg||[]).map(g=>g.n);
+  if(!adm) S.verTec=S.me?S.me.nombre:'';
+  if(adm && S.verTec && !nombres.some(n=>mismoNombre(n,S.verTec))) S.verTec='';
+  if(adm && nombres.length) h+=`<div class="bar2"><div class="chips"><button class="chip" data-vt="" aria-pressed="${!S.verTec}">Todos</button>`+nombres.map(n=>`<button class="chip" data-vt="${esc(n)}" aria-pressed="${mismoNombre(n,S.verTec)}">${esc(n)}</button>`).join('')+`</div></div>`;
+  const taller=P.u.filter(u=>u.z==='TALLER');
+  if(S.verTec){
+    const cats=catsDe(P,S.verTec), mio=deTecnico(P,S.verTec,cats);
+    const a=cuenta(mio.filter(x=>x.u.z==='TALLER').flatMap(x=>x.ws));
+    const quien=adm&&!mismoNombre(S.verTec,S.me&&S.me.nombre)?esc(S.verTec):'Tú';
+    h+=`<div class="kpis"><div class="kpi"><b>${mio.length}</b><span>unidades</span></div><div class="kpi"><b>${a.t}</b><span>trabajos</span></div>
+      <div class="kpi"><b>${a.h}</b><span>hechos</span></div><div class="kpi"><b>${futuro?'—':a.p+'%'}</b><span>avance</span></div></div>`;
+    if(!futuro && a.t) h+=`<div class="av"><div class="big"><b>${a.p}%</b><span>${quien==='Tú'?'tu avance':'avance de '+quien} · ${a.h} de ${a.t} trabajos</span></div>${barra(a)}</div>`;
+    if(!mio.length) h+=`<div class="empty"><b>${quien==='Tú'?'No tienes':'No tiene'} unidades asignadas</b>${futuro?'Para ese día todavía no hay reparto.':'Cuando Frank te asigne una placa aparece aquí.'}</div>`;
+    for(const [c,m] of porCategoria(mio)){
+      const ac=cuenta([...m.values()].flatMap(x=>x.ws));
+      h+=`<h2 class="sec">${esc(CAT[c]||c)} <span class="sub">${futuro?ac.t+' trabajos':ac.h+'/'+ac.t+' hechos'}</span></h2><div class="list">`+[...m.values()].map(x=>unidad(x.u,x.ws,c,true)).join('')+`</div>`;
+    }
+  } else {
+    // Administrador, vista de todos: avance total, por especialidad y por técnico.
+    const tod=taller.flatMap(u=>u.w||[]), a=cuenta(tod);
+    h+=`<div class="kpis"><div class="kpi"><b>${R.t||0}</b><span>en taller</span></div><div class="kpi"><b>${R.tr||0}</b><span>trabajos</span></div>
+      <div class="kpi rojo"><b>${R.c||0}</b><span>críticos</span></div><div class="kpi"><b>${futuro?'—':a.p+'%'}</b><span>avance</span></div></div>`;
+    if(!futuro && a.t){
+      const cats=[...new Set(tod.map(w=>w.c).filter(Boolean))].map(c=>[c,cuenta(tod.filter(w=>w.c===c))]).sort((x,y)=>y[1].t-x[1].t);
+      const tecs=(P.cg||[]).map(g=>[g.n,cuenta(deTecnico(P,g.n,g.c?[g.c]:[]).filter(x=>x.u.z==='TALLER').flatMap(x=>x.ws))]).filter(x=>x[1].t);
+      h+=`<div class="av"><div class="big"><b>${a.p}%</b><span>avance del día · ${a.h} de ${a.t} trabajos del taller cerrados</span></div>${barra(a)}
+        <div class="avl">`+cats.map(([c,x])=>`<span>${esc(CAT[c]||c)}</span>${barra(x)}<span class="n">${x.h}/${x.t}</span>`).join('')+`</div>`
+        +(tecs.length?`<div class="avl">`+tecs.map(([n,x])=>`<span>${esc(n)}</span>${barra(x)}<span class="n">${x.h}/${x.t}</span>`).join('')+`</div>`:'')+`</div>`;
+    }
+    const cats=['TODAS',...new Set(tod.map(w=>w.c).filter(Boolean))];
+    if(!cats.includes(S.verCat)) S.verCat='TODAS';
+    h+=`<div class="bar2"><div class="chips">`+cats.map(c=>`<button class="chip" data-vc="${esc(c)}" aria-pressed="${S.verCat===c}">${c==='TODAS'?'Todas':esc(CAT[c]||c)}<span class="n">${c==='TODAS'?taller.length:taller.filter(u=>(u.w||[]).some(w=>w.c===c)).length}</span></button>`).join('')+`</div></div>`;
+    const grupos=porCategoria(taller.map(u=>({u,ws:(u.w||[]).filter(w=>S.verCat==='TODAS'||w.c===S.verCat)})).filter(x=>x.ws.length));
+    for(const [c,m] of grupos){
+      const ac=cuenta([...m.values()].flatMap(x=>x.ws));
+      h+=`<h2 class="sec">${esc(CAT[c]||c)} · ${m.size} ${m.size===1?'unidad':'unidades'} <span class="sub">${futuro?ac.t+' trabajos':ac.h+'/'+ac.t+' hechos'}</span></h2><div class="list">`+[...m.values()].map(x=>unidad(x.u,x.ws,c,false)).join('')+`</div>`;
+    }
+    const arena=P.u.filter(u=>u.z==='ARENA');
+    if(arena.length) h+=`<h2 class="sec">En la arena · en espera (${arena.length})</h2><div class="list">`+arena.map(u=>unidad(u,u.w||[],'A',false)).join('')+`</div>`;
   }
-  const gente=(P.cg||[]);
+  // Cada técnico ve SOLO lo suyo (2.57): su fila; el administrador ve a todos.
+  const gente=(P.cg||[]).filter(g=>adm||esYo(g.n));
   if(gente.length){
-    h+=`<h2 class="sec">Quién atiende</h2><div class="orden">`+gente.map(g=>`<div class="per${esYo(g.n)?' yo':''}"><b>${esc(g.n)}</b><span class="meta">${g.h||0}/${g.hd||0} h</span>
+    h+=`<h2 class="sec">${adm?'Quién atiende':'Tu jornada'}</h2><div class="orden">`+gente.map(g=>`<div class="per${esYo(g.n)?' yo':''}"><b>${esc(g.n)}</b><span class="meta">${g.h||0}/${g.hd||0} h</span>
       <small>${esc(CAT[g.c]||g.c||'')} · ${(g.r||[]).length?(g.r||[]).map((p,i)=>`${i+1}· ${esc(p)}`).join('  '):'sin unidad asignada'}</small></div>`).join('')+`</div>`;
   }
-  const otras=P.u.filter(u=>!mias.includes(u));
-  for(const z of ['TALLER','ARENA']){
-    const zs=otras.filter(u=>u.z===z); if(!zs.length) continue;
-    h+=`<h2 class="sec">${z==='TALLER'?'En el taller':'En la arena · en espera'} (${zs.length})</h2><div class="list">`+zs.map(u=>unidad(u,false)).join('')+`</div>`;
-  }
-  if((P.av||[]).length) h+=`<h2 class="sec">Ojo con esto</h2>`+P.av.map(a=>`<div class="note">${esc(a)}</div>`).join('');
+  if(adm&&(P.av||[]).length) h+=`<h2 class="sec">Ojo con esto</h2>`+P.av.map(a=>`<div class="note">${esc(a)}</div>`).join('');
   el.innerHTML=h;
 }
-function unidad(u, mia){
-  const k='p:'+u.p, op=S.open.has(k)||mia;
+function unidad(u, ws, grupo, abierta){
+  const k='p:'+u.p+':'+grupo, op=S.open.has(k)||(abierta&&!S.open.has('c'+k));
   const ord=S.ord.find(o=>o.placa===u.p && !CERRADAS.includes(o.estado));
-  return `<article class="orden${mia?' mia':''}"><button class="ohead" data-u="${esc(k)}" aria-expanded="${op}">
+  const est=S.est.find(e=>e.placa===u.p), a=cuenta(ws);
+  return `<article class="orden${abierta?' mia':''}"><button class="ohead" data-u="${esc(k)}" data-ab="${abierta?1:''}" aria-expanded="${op}">
     <span class="plate">${esc(u.p)}</span>
-    <span class="ot"><b>${esc(u.ti||'')}</b><small>${u.n||0} pendientes${u.c?` · <span style="color:var(--crit)">${u.c} críticos</span>`:''}${u.ac==='VENCIDO'||u.ac==='CRITICO'?` · aceite ${esc((SEM[u.ac]||u.ac).toLowerCase())}`:''}</small></span>
-    <span class="prog">${(u.as||[]).length?(u.as||[]).map(x=>`<span class="pill tec${esYo(x)?' yo':''}">${esc(x)}</span>`).join(' '):''}</span></button>
+    <span class="ot"><b>${esc(u.ti||'')}</b><small>${ws.length} trabajo(s)${u.c?` · <span style="color:var(--crit)">${u.c} críticos</span>`:''}${u.ac==='VENCIDO'||u.ac==='CRITICO'?` · aceite ${esc((SEM[u.ac]||u.ac).toLowerCase())}`:''}</small>${(u.as||[]).length||est?`<span class="meta" style="margin-top:4px">${(u.as||[]).map(x=>`<span class="pill tec${esYo(x)?' yo':''}">${esc(x)}</span>`).join(' ')}${est?`<span class="dias">${diasDesde(est.desde)} días en taller</span>`:''}</span>`:''}</span>
+    <span class="prog">${a.t?`${a.h}/${a.t}`:''}</span></button>
+    ${notaU(u.p,op)}
     ${op?`${ord?`<div class="item"><span></span><div class="ib"><button class="btn sm primary" data-ir="${esc(ord.id)}">Abrir ${esc(ord.id)} para cerrar</button></div></div>`:''}
-      ${(u.w||[]).map(w=>`<div class="item"><span class="crit ${critCls(w.k||0)}">${w.k==null?'–':w.k}</span><div class="ib"><span class="desc">${esc(w.x)}</span>
-      <span class="meta"><span>${esc(CAT[w.c]||w.c||'')}</span><span>${w.d||0} d</span>${w.r?`<span>Espera: ${esc(w.r)}</span>`:''}</span></div></div>`).join('')}
-      ${u.mas?`<div class="item"><span></span><span class="meta">y ${u.mas} más</span></div>`:''}`:''}</article>`;
+      ${ws.map(w=>{ const e=estW(w); return `<div class="item${e==='x'?' anul':''}"><span class="crit ${critCls(w.k||0)}">${w.k==null?'–':w.k}</span><div class="ib"><span class="desc">${esc(w.x)}</span>
+      <span class="meta">${e==='h'?'<span class="pill e-HECHO">Hecho</span>':e==='x'?'<span class="pill e-ANULADO">Anulado</span>':''}<span>${esc(CAT[w.c]||w.c||'')}</span><span>${w.d||0} d</span>${w.r?`<span>Espera: ${esc(w.r)}</span>`:''}</span></div></div>`; }).join('')}
+      ${u.mas&&grupo==='A'?`<div class="item"><span></span><span class="meta">y ${u.mas} más</span></div>`:''}`:''}</article>`;
 }
+
+// 2.58: la nota del administrador en cada placa del plan, por día. Los técnicos no la ven.
+function notaU(placa, abierta){
+  if(!esAdm()||!S.fPlan) return '';
+  const n=S.notas[S.fPlan+'|'+placa];
+  if(n) return `<div class="nplan"><span><b>Nota:</b> ${esc(n)}</span><button class="btn sm" data-nota="${esc(placa)}">Editar</button></div>`;
+  return abierta?`<div class="item"><span></span><div class="ib"><button class="btn sm" data-nota="${esc(placa)}">+ Nota</button></div></div>`:'';
+}
+function abrirNota(placa){
+  S.nt={f:S.fPlan, p:placa}; const n=S.notas[S.fPlan+'|'+placa]||'';
+  $('nSub').textContent=`${placa} · plan del ${dia(S.fPlan)}`; $('nTxt').value=n; $('nErr').textContent='';
+  $('nBorra').hidden=!n; $('nOk').disabled=false; contarNota(); $('shNota').hidden=false; setTimeout(()=>$('nTxt').focus(),50);
+}
+function contarNota(){ $('nCnt').textContent=`${$('nTxt').value.length}/300`; }
+$('nTxt').addEventListener('input',contarNota);
+async function guardarNota(texto){
+  const {f,p}=S.nt||{}; if(!f||!p) return;
+  $('nOk').disabled=true;
+  const { error } = await sb.from('notas_plan').upsert({fecha:f, placa:p, nota:texto},{onConflict:'fecha,placa'});
+  $('nOk').disabled=false;
+  if(error) return $('nErr').textContent='No se pudo guardar: '+(esRed(error)?'sin señal, inténtalo otra vez':/notas_plan/.test(error.message||'')&&/exist|schema/i.test(error.message||'')?'falta activar las notas en la nube (SQL 09)':error.message);
+  if(texto) S.notas[f+'|'+p]=texto; else delete S.notas[f+'|'+p];
+  $('shNota').hidden=true; toast(texto?`Nota guardada en ${p}.`:`Nota quitada de ${p}.`); pintarPlan();
+}
+$('fNota').onsubmit=e=>{ e.preventDefault(); guardarNota($('nTxt').value.trim()); };
+$('nBorra').onclick=()=>guardarNota('');
+document.querySelectorAll('[data-cerrar="nota"]').forEach(b=>b.onclick=()=>$('shNota').hidden=true);
 
 // ---------- Órdenes ----------
 const trDe = oid => S.trab.filter(t=>t.orden_id===oid);
 const esAdm = () => !!(S.me && S.me.es_admin);
+// Cada técnico ve solo las órdenes de su especialidad (además de la regla de la nube).
+const ordMia = o => esAdm() || misEsps().includes(sinT(o.especialidad)) || S.trab.some(t=>t.orden_id===o.id&&t.cerrado_por===S.uid);
 function pintarOrdenes(){
-  const abiertas=S.ord.filter(o=>!CERRADAS.includes(o.estado));
+  const abiertas=S.ord.filter(o=>!CERRADAS.includes(o.estado)&&ordMia(o));
   const esps=['TODAS',...new Set(abiertas.map(o=>o.especialidad).filter(Boolean))];
   if(!esps.includes(S.esp)) S.esp='TODAS';
   $('chips').innerHTML=esps.map(e=>`<button class="chip" data-esp="${esc(e)}" aria-pressed="${S.esp===e}">${e==='TODAS'?'Todas':esc(e)}</button>`).join('');
   $('verCerr').setAttribute('aria-pressed',S.verCerradas);
   const b=sinT(S.bOrd);
   const enCola=new Map(S.cola.map(c=>[c.id,c]));
-  const vis=S.ord.filter(o=>(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||!CERRADAS.includes(o.estado))&&o.estado!=='ANULADA'
+  const vis=S.ord.filter(o=>ordMia(o)&&(S.esp==='TODAS'||o.especialidad===S.esp)&&(S.verCerradas||!CERRADAS.includes(o.estado))&&o.estado!=='ANULADA'
         &&(!b||sinT(o.placa).includes(b)||sinT(o.id).includes(b)))
-     .filter(o=>S.verCerradas||trDe(o.id).length);
+     .filter(o=>S.verCerradas||trDe(o.id).length||!CERRADAS.includes(o.estado));   // 2.58: la orden en blanco también se ve
   if(!vis.length){ $('lista').innerHTML=`<div class="empty"><b>${b?'Nada con esa búsqueda':'No hay órdenes abiertas'}</b>Las órdenes nuevas aparecen aquí al instante.</div>`; return; }
   $('lista').innerHTML=vis.map(o=>{ const ts=trDe(o.id).filter(t=>t.estado!=='NO_TRABAJADO'), r=ts.filter(t=>t.estado!=='PENDIENTE'||enCola.has(t.id)).length, op=S.open.has(o.id);
     return `<article class="orden" id="o-${esc(o.id)}"><button class="ohead" data-o="${esc(o.id)}" aria-expanded="${op}">
       <span class="plate">${esc(o.placa)}</span>
-      <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
-      <span class="prog">${r}/${ts.length}</span></button>
+      <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · Emitida ${esc(dia(o.emitida))} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
+      <span class="prog">${ts.length?`${r}/${ts.length}`:'en blanco'}</span></button>
       ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}
-      ${op&&esAdm()&&ts.some(t=>t.estado==='PENDIENTE'&&!enCola.has(t.id))?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" data-oc="${esc(o.id)}" data-ov="HECHO">Finalizar toda la orden</button><button class="btn sm" data-oc="${esc(o.id)}" data-ov="ANULADO">Anular toda la orden</button></div>`:''}</article>`; }).join('');
+      ${op&&!ts.length&&!CERRADAS.includes(o.estado)?`<div class="note" style="margin:0 12px 10px">Orden en blanco: no trae trabajos. Anota abajo lo que se hizo en la unidad.</div>`:''}
+      ${op&&esAdm()&&ts.some(t=>t.estado==='PENDIENTE'&&!enCola.has(t.id))?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" data-oc="${esc(o.id)}" data-ov="HECHO">Finalizar toda la orden</button><button class="btn sm" data-oc="${esc(o.id)}" data-ov="ANULADO">Anular toda la orden</button></div>`:''}
+      ${op&&S.reg_ok&&!CERRADAS.includes(o.estado)?`<div class="item"><span></span><div><button class="btn sm" data-ra="${esc(o.id)}" data-rp="${esc(o.placa)}">+ Añadir trabajo a esta orden</button></div></div>`:''}</article>`; }).join('');
+}
+function miniaturas(t){
+  const fs=[t.foto_path,...(t.fotos||[])].filter(p=>p&&S.urls[p]);
+  return fs.length?`<span class="meta">${fs.map(p=>`<a href="${esc(S.urls[p])}" target="_blank" rel="noopener"><img class="thumb" src="${esc(S.urls[p])}" alt="Foto del cierre"></a>`).join('')}</span>`:'';
 }
 function item(t, cola){
   const estado = cola ? 'COLA' : t.estado;
@@ -410,7 +603,7 @@ function item(t, cola){
     <span class="desc">${esc(t.descripcion)}</span>
     <span class="meta"><span class="pill e-${estado}">${EST[estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${quien}</span>
     ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
-    ${t.foto_path&&S.urls[t.foto_path]?`<img class="thumb" src="${esc(S.urls[t.foto_path])}" alt="Foto del cierre">`:''}
+    ${miniaturas(t)}
     ${acc}</div></div>`;
 }
 $('bOrd').addEventListener('input',e=>{ S.bOrd=e.target.value; pintarOrdenes(); });
@@ -450,6 +643,15 @@ function pintarHist(){
   const hechos=ts.filter(t=>t.estado==='HECHO').length;
   let h=`<h2 class="sec">${adm&&S.histTodos?'Trabajos de todos':'Mis trabajos'}</h2><p class="sub">${ts.length} cierres · ${hechos} hechos. Las fotos de órdenes ya cerradas quedan guardadas en la PC del taller.</p>`;
   if(adm) h+=`<div class="bar2"><div class="chips"><button class="chip" data-hist="0" aria-pressed="${!S.histTodos}">Los míos</button><button class="chip" data-hist="1" aria-pressed="${S.histTodos}">De todos</button></div></div>`;
+  // 2.57: el técnico también anota trabajos adicionales (hechos, con foto) y pendientes nuevos.
+  if(S.reg_ok){
+    h+=`<div class="adm"><button class="btn primary" data-rg="REALIZADO">+ Trabajo adicional hecho</button><button class="btn primary" data-rg="PENDIENTE">+ Nuevo pendiente</button></div>`;
+    const mios=S.reg.filter(r=>r.tipo!=='AUXILIO'&&r.creado_por===S.uid);
+    if(mios.length) h+=`<h2 class="sec">Lo que anoté (${mios.length})</h2><div class="orden">`+mios.slice(0,40).map(r=>`<div class="item"><span class="plate" style="font-size:12px;align-self:start">${esc(r.placa)}</span><div class="ib">
+      <span class="desc">${esc(r.descripcion)}</span><span class="meta"><span class="pill ${r.tipo==='REALIZADO'?'e-HECHO':'e-PENDIENTE'}">${r.tipo==='REALIZADO'?'Hecho':'Pendiente nuevo'}</span>
+      <span>${esc(dia(r.fecha))}</span>${r.categoria?`<span>${esc(CAT[r.categoria]||r.categoria)}</span>`:''}${r.orden_id?`<span>${esc(r.orden_id)}</span>`:''}${(r.fotos||[]).length?`<span>${r.fotos.length} foto(s)</span>`:''}
+      <span>${r.aplicado_en?'Ya está en la base':'Pasa a la base en la próxima vuelta'}</span></span></div></div>`).join('')+`</div>`;
+  }
   if(colaMia.length) h+=`<h2 class="sec">Por enviar (${colaMia.length})</h2><div class="list"><div class="orden">`+colaMia.map(t=>item(t,enCola.get(t.id))).join('')+`</div></div>`;
   if(!ts.length){ el.innerHTML=h+`<div class="empty"><b>Todavía no hay cierres</b>Lo que cierres desde aquí queda en tu historial.</div>`; return; }
   let ult='', html='';
@@ -461,16 +663,150 @@ function pintarHist(){
       <span class="desc">${esc(t.descripcion)}</span>
       <span class="meta"><span class="pill e-${t.estado}">${EST[t.estado]}${t.motivo?' · '+esc(t.motivo):''}</span><span>${esc(t.orden_id)}</span><span>${fmt(t.cerrado_en)}</span>${adm&&S.histTodos?`<span>${esc(S.tec[t.cerrado_por]||'')}</span>`:''}</span>
       ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
-      ${t.foto_path&&S.urls[t.foto_path]?`<img class="thumb" src="${esc(S.urls[t.foto_path])}" alt="Foto del cierre">`:(t.foto_path&&t.foto_archivada?`<span class="meta">Foto guardada en la PC del taller</span>`:'')}
+      ${t.foto_path&&S.urls[t.foto_path]?miniaturas(t):(t.foto_path&&t.foto_archivada?`<span class="meta">Foto${(t.fotos||[]).length?'s':''} guardada${(t.fotos||[]).length?'s':''} en la PC del taller</span>`:'')}
     </div></div>`;
   }
   el.innerHTML=h+html+`</div>`+(ts.length>300?`<p class="sub">Se muestran los 300 más recientes.</p>`:'');
 }
 
+// ---------- Auxilios, unidades en taller y lo que anota el administrador (2.56) ----------
+function pintarAux(){
+  const el=$('pAux'), adm=esAdm();
+  if(!S.reg_ok){ el.innerHTML=`<div class="empty"><b>Todavía no está activo</b>Falta activar los auxilios en la nube (lo hace Frank desde la PC).</div>`; return; }
+  let h='';
+  if(adm) h+=`<div class="adm"><button class="btn primary" data-rg="REALIZADO">+ Trabajo realizado</button><button class="btn primary" data-rg="PENDIENTE">+ Nuevo pendiente</button>
+    <button class="btn primary" data-rg="AUXILIO">+ Auxilio mecánico</button><button class="btn" data-rg="ESTADIA">Marcar en taller</button></div>`;
+  const aux=S.reg.filter(r=>r.tipo==='AUXILIO');
+  const act=aux.filter(r=>r.estado==='EN_CAMINO'||r.estado==='REGISTRADO'), res=aux.filter(r=>!act.includes(r));
+  h+=`<h2 class="sec">Auxilios mecánicos</h2>`;
+  if(!aux.length) h+=`<div class="empty"><b>Sin auxilios</b>Los auxilios en ruta que registre el administrador aparecen aquí.</div>`;
+  else h+=`<div class="list">`+[...act,...res].map(r=>`<article class="orden${act.includes(r)?' mia':''}"><div class="item" style="border-top:0">
+      <span class="plate" style="align-self:start">${esc(r.placa)}</span><div class="ib">
+      <span class="desc">${esc(r.descripcion)}</span>
+      <span class="meta"><span class="pill e-${esc(r.estado)}">${esc(AUXE[r.estado]||r.estado)}</span><span>${esc(dia(r.fecha))}${r.hora?' · '+esc(r.hora):''}</span>${r.lugar?`<span>${esc(r.lugar)}</span>`:''}${r.atendio?`<span>Fue: ${esc(r.atendio)}</span>`:''}</span>
+      ${r.aplicado_en?`<span class="meta">Ya está en el historial de la unidad</span>`:''}
+      ${adm&&!r.aplicado_en?`<div class="chips">`+['EN_CAMINO','ATENDIDO','REMOLCADO','CANCELADO'].map(e=>`<button class="chip" data-ax="${esc(r.id)}" data-ae="${e}" aria-pressed="${r.estado===e}">${AUXE[e]}</button>`).join('')+`</div>`:''}
+    </div></div></article>`).join('')+`</div>`;
+  const est=[...S.est].sort((a,b)=>String(a.desde).localeCompare(String(b.desde)));
+  h+=`<h2 class="sec">Unidades en taller (${est.length})</h2>`;
+  h+= est.length ? `<div class="orden">`+est.map(e=>`<div class="per"><b><span class="plate">${esc(e.placa)}</span></b><span class="dias">${diasDesde(e.desde)} días</span>
+      <small>Desde ${esc(dia(e.desde))}${e.nota?' · '+esc(e.nota):''}${adm?` · <button class="btn sm" data-sal="${esc(e.placa)}">Ya salió</button>`:''}</small></div>`).join('')+`</div>`
+    : `<div class="empty"><b>Ninguna unidad marcada</b>${adm?'Con «Marcar en taller» se ve cuántos días lleva cada una.':''}</div>`;
+  const otros=S.reg.filter(r=>r.tipo!=='AUXILIO');
+  if(adm&&otros.length){
+    h+=`<h2 class="sec">Trabajos adicionales anotados (todos)</h2><div class="orden">`+otros.slice(0,60).map(r=>`<div class="item"><span class="plate" style="font-size:12px;align-self:start">${esc(r.placa)}</span><div class="ib">
+      <span class="desc">${esc(r.descripcion)}</span><span class="meta"><span class="pill ${r.tipo==='REALIZADO'?'e-HECHO':'e-PENDIENTE'}">${r.tipo==='REALIZADO'?'Realizado':'Pendiente nuevo'}</span>
+      <span>${esc(dia(r.fecha))}</span>${r.categoria?`<span>${esc(CAT[r.categoria]||r.categoria)}</span>`:''}${r.atendio?`<span>${esc(r.atendio)}</span>`:''}${r.orden_id?`<span>${esc(r.orden_id)}</span>`:''}<span>por ${esc(S.tec[r.creado_por]||'—')}</span>
+      <span>${r.aplicado_en?'En la base':'Pasa a la base en la próxima vuelta'}</span>${(r.fotos||[]).length?`<span>${r.fotos.length} foto(s)</span>`:''}</span></div></div>`).join('')+`</div>`;
+  }
+  el.innerHTML=h;
+}
+const TIT = {REALIZADO:'Trabajo realizado', PENDIENTE:'Nuevo pendiente', AUXILIO:'Auxilio mecánico', ESTADIA:'Marcar en taller'};
+function abrirReg(tipo, placa, orden){
+  S.rg={tipo, orden:orden||null, files:[], acomp:false, con:[]};
+  const mia=esAdm()?'':(misEsps()[0]||'');
+  const catOpts=`<option value="">Elige la especialidad</option>`+Object.entries(CAT).map(([k,v])=>`<option value="${k}"${k===mia?' selected':''}>${v}</option>`).join('');
+  const pl=`<div><label class="lb" for="rgPlaca">Placa</label><input type="text" id="rgPlaca" list="dlFlota" autocomplete="off" value="${esc(placa||'')}" ${orden?'readonly':''} required></div>`;
+  let b='';
+  if(orden) b+=`<div class="chips"><button type="button" class="chip" data-rgt="REALIZADO" aria-pressed="${tipo==='REALIZADO'}">Ya se hizo</button><button type="button" class="chip" data-rgt="PENDIENTE" aria-pressed="${tipo==='PENDIENTE'}">Queda pendiente</button></div><p class="sub">Orden ${esc(orden)}</p>`;
+  if(tipo==='ESTADIA') b+=pl+`<div><label class="lb" for="rgDesde">Está en el taller desde</label><input type="date" id="rgDesde" value="${hoyISO()}" max="${hoyISO()}"></div>
+      <div><label class="lb" for="rgNota">Nota (opcional)</label><input type="text" id="rgNota" placeholder="Por ejemplo: espera repuesto"></div>`;
+  else if(tipo==='AUXILIO') b+=pl+`<div><label class="lb" for="rgLugar">Lugar</label><input type="text" id="rgLugar" placeholder="Por ejemplo: Km 45 Panamericana Sur" required></div>
+      <div><label class="lb" for="rgDesc">Qué pasó</label><textarea id="rgDesc" required></textarea></div>
+      <div class="dos"><div><label class="lb" for="rgFecha">Fecha</label><input type="date" id="rgFecha" value="${hoyISO()}"></div><div><label class="lb" for="rgHora">Hora</label><input type="time" id="rgHora"></div></div>
+      <div><label class="lb" for="rgAt">Quién fue</label><input type="text" id="rgAt" list="dlTec" autocomplete="off"></div>
+      <div><label class="lb" for="rgEst">Estado</label><select id="rgEst"><option value="EN_CAMINO">En camino</option><option value="ATENDIDO">Atendido</option><option value="REMOLCADO">Remolcado</option></select></div>`;
+  else b+=pl+`<div><label class="lb" for="rgCat">Especialidad</label><select id="rgCat">${catOpts}</select></div>
+      <div><label class="lb" for="rgDesc">${tipo==='REALIZADO'?'Qué se hizo':'Qué hay que hacer'}</label><textarea id="rgDesc" required></textarea></div>
+      <div class="dos"><div><label class="lb" for="rgFecha">${tipo==='REALIZADO'?'Fecha en que se hizo':'Fecha del reporte'}</label><input type="date" id="rgFecha" value="${hoyISO()}" max="${hoyISO()}"></div>
+      ${tipo==='REALIZADO'?`<div><label class="lb" for="rgAt">Quién lo hizo</label><input type="text" id="rgAt" list="dlTec" autocomplete="off" value="${esAdm()?'':esc((S.me||{}).nombre||'')}"></div>`:'<div></div>'}</div>
+      ${tipo==='REALIZADO'?`<div id="rgSolo"><label class="lb">¿Lo hizo solo o acompañado?</label>
+        <div class="chips"><button type="button" class="chip" data-solo="1" aria-pressed="true">Solo</button><button type="button" class="chip" data-solo="0" aria-pressed="false">Acompañado</button></div>
+        <div class="chips" id="rgCon" hidden style="flex-wrap:wrap;margin-top:8px"></div></div>`:''}
+      <div><label class="lb">Fotos ${tipo==='REALIZADO'&&!esAdm()?'(al menos una)':'(opcional)'}</label><div class="foto" id="rgFotos"></div>
+      <div class="fbtns"><label class="btn sm">Tomar foto<input type="file" id="rgCam" accept="image/*" capture="environment" hidden></label><label class="btn sm">Elegir de la galería<input type="file" id="rgFoto" accept="image/*,.jpg,.jpeg,.png,.heic,.heif,.webp" multiple hidden></label></div></div>`;
+  $('rgT').textContent=TIT[tipo]; $('rgBody').innerHTML=b; $('rgErr').textContent=''; $('rgOk').disabled=false; $('rgOk').textContent='Guardar'; $('shReg').hidden=false;
+  const alElegir=e=>{ S.rg.files=S.rg.files.concat([...e.target.files]).slice(0,MAX_FOTOS); e.target.value=''; pintarFotosReg(); };
+  for(const id of ['rgFoto','rgCam']){ const inp=$(id); if(inp) inp.onchange=alElegir; }
+}
+function pintarFotosReg(){
+  const el=$('rgFotos'); if(!el) return;
+  el.innerHTML=S.rg.files.map((f,i)=>`<span class="ft"><img src="${URL.createObjectURL(f)}" alt="Foto ${i+1}"><button type="button" data-qr="${i}" aria-label="Quitar foto">×</button></span>`).join('');
+}
+$('rgBody').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||!S.rg) return;
+  if(b.dataset.qr!==undefined){ S.rg.files.splice(+b.dataset.qr,1); pintarFotosReg(); return; }
+  if(b.dataset.solo!==undefined){ S.rg.acomp=b.dataset.solo==='0'; if(!S.rg.acomp) S.rg.con=[]; }
+  else if(b.dataset.con){ const n=b.dataset.con, i=S.rg.con.indexOf(n); i<0?S.rg.con.push(n):S.rg.con.splice(i,1); }
+  else return;
+  pintarCon(S.rg,'#rgSolo','#rgCon');
+});
+document.querySelectorAll('[data-cerrar="reg"]').forEach(b=>b.onclick=()=>$('shReg').hidden=true);
+$('fReg').onsubmit = async e => {
+  e.preventDefault(); const t=S.rg.tipo, err=$('rgErr'); err.textContent='';
+  const v=id=>($(id)&&$(id).value||'').trim();
+  const placa=sinT(v('rgPlaca')).replace(/\s+/g,'');
+  if(!placa) return err.textContent='Escribe la placa.';
+  if(Object.keys(S.flota).length && !(placa in S.flota)) return err.textContent='Esa placa no está en la flota. Revísala.';
+  const ub={T:'TRACTO',C:'CARRETA'}[S.flota[placa]]||'';
+  let q;
+  if(t==='ESTADIA') q=sb.from('estadias').upsert({placa, desde:v('rgDesde')||hoyISO(), nota:v('rgNota'), activo:true});
+  else {
+    const desc=v('rgDesc'); if(!desc) return err.textContent='Escribe la descripción.';
+    if(t==='AUXILIO'&&!v('rgLugar')) return err.textContent='Escribe el lugar.';
+    const f={tipo:t, placa, ubicacion:ub, descripcion:desc, fecha:v('rgFecha')||hoyISO(), atendio:v('rgAt')};
+    if(t==='AUXILIO'){ f.lugar=v('rgLugar'); f.hora=v('rgHora'); f.estado=v('rgEst')||'EN_CAMINO'; }
+    else { f.categoria=v('rgCat'); if(S.rg.orden) f.orden_id=S.rg.orden; }
+    if(t!=='AUXILIO'&&!f.categoria) return err.textContent='Elige la especialidad.';
+    if(t==='REALIZADO'&&!esAdm()&&!S.rg.files.length) return err.textContent='Agrega al menos una foto del trabajo hecho.';
+    if(t==='REALIZADO'){ if(S.rg.acomp&&!S.rg.con.length) return err.textContent='Marca con quién lo hizo, o elige «Solo».'; if(S.rg.con.length) f.acompanantes=[...S.rg.con]; }
+    if(S.rg.files.length){
+      if(!navigator.onLine) return err.textContent='Para guardar con fotos hace falta señal.';
+      $('rgOk').disabled=true;
+      try{
+        const blobs=await comprimirTodas(S.rg.files, $('rgOk')), base=`registros/${S.uid}/${Date.now()}`;
+        f.fotos=blobs.map((_,i)=>`${base}_${i+1}.jpg`);
+        $('rgOk').textContent='Subiendo fotos…';
+        for(const [i,b] of blobs.entries()) await subirFoto(f.fotos[i], b);
+      }catch(e2){ $('rgOk').disabled=false; $('rgOk').textContent='Guardar'; return err.textContent=esRed(e2)?'Sin señal: inténtalo de nuevo.':(ERRORES[codigoDe(e2)]||'No se pudo subir la foto.'); }
+    }
+    q=sb.from('registros').insert(f).then(async r=>{
+      // nube sin el paso 08: la columna fotos no existe todavía; el admin guarda sin ellas
+      if(r.error && (f.fotos||f.acompanantes) && /fotos|acompanantes/i.test(r.error.message||'') && esAdm()){ delete f.fotos; delete f.acompanantes; return await sb.from('registros').insert(f); }
+      return r; });
+  }
+  $('rgOk').disabled=true; $('rgOk').textContent='Guardando…';
+  const { error } = await q;
+  $('rgOk').disabled=false; $('rgOk').textContent='Guardar';
+  if(error) return err.textContent = esRed(error) ? 'Sin señal: inténtalo de nuevo.' : /permission|row-level/i.test(error.message) ? (t==='AUXILIO'||t==='ESTADIA'?'Solo el administrador puede anotar esto.':'No se pudo: un trabajo hecho necesita al menos una foto.') : 'No se pudo guardar: '+error.message;
+  $('shReg').hidden=true; toast(t==='ESTADIA'?`${placa} marcada en el taller.`:t==='AUXILIO'?'Auxilio registrado.':'Anotado. Pasa a la base en la próxima vuelta de la PC.'); cargar();
+};
+async function cambiarAux(id, estado){
+  const { error } = await sb.from('registros').update({estado}).eq('id',id);
+  if(error) return toast('No se pudo cambiar: '+(esRed(error)?'sin señal':error.message));
+  toast('Auxilio: '+AUXE[estado]); cargar();
+}
+async function salioDelTaller(placa){
+  if(!confirmarSalida(placa)) return;
+  const { error } = await sb.from('estadias').update({activo:false}).eq('placa',placa);
+  if(error) return toast('No se pudo: '+(esRed(error)?'sin señal':error.message));
+  toast(`${placa} ya no figura en el taller.`); cargar();
+}
+const confirmarSalida = p => { const k='sal:'+p; if(S.open.has(k)){ S.open.delete(k); return true; } S.open.add(k); toast(`Pulsa otra vez «Ya salió» para confirmar ${p}.`); setTimeout(()=>S.open.delete(k),5000); return false; };
+
 document.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.o){ S.open.has(b.dataset.o)?S.open.delete(b.dataset.o):S.open.add(b.dataset.o); pintarOrdenes(); }
-  else if(b.dataset.u){ S.open.has(b.dataset.u)?S.open.delete(b.dataset.u):S.open.add(b.dataset.u); pintarPlan(); }
+  else if(b.dataset.u){ const k=(b.dataset.ab?'c':'')+b.dataset.u; S.open.has(k)?S.open.delete(k):S.open.add(k); pintarPlan(); }
+  else if(b.dataset.nota) abrirNota(b.dataset.nota);
+  else if(b.dataset.dia){ S.dia=b.dataset.dia; pintarPlan(); }
+  else if(b.dataset.vt!==undefined){ S.verTec=b.dataset.vt; pintarPlan(); }
+  else if(b.dataset.vc){ S.verCat=b.dataset.vc; pintarPlan(); }
+  else if(b.dataset.rg) abrirReg(b.dataset.rg);
+  else if(b.dataset.rgt){ const pl=$('rgPlaca').value; abrirReg(b.dataset.rgt, pl, S.rg&&S.rg.orden); }
+  else if(b.dataset.ra) abrirReg('REALIZADO', b.dataset.rp, b.dataset.ra);
+  else if(b.dataset.ax) cambiarAux(b.dataset.ax, b.dataset.ae);
+  else if(b.dataset.sal) salioDelTaller(b.dataset.sal);
   else if(b.dataset.ir){ S.open.add(b.dataset.ir); S.bOrd=''; $('bOrd').value=''; S.esp='TODAS'; irA('ord');
                          const a=$('o-'+b.dataset.ir); if(a) a.scrollIntoView({block:'start'}); }
   else if(b.dataset.esp){ S.esp=b.dataset.esp; pintarOrdenes(); }
@@ -486,30 +822,59 @@ document.addEventListener('click',e=>{
 // ---------- cerrar ----------
 function abrir(id){
   const t=S.trab.find(x=>x.id===id); if(!t) return; const o=S.ord.find(x=>x.id===t.orden_id)||{};
-  S.sheet={id,res:null,file:null};
-  $('shMeta').innerHTML=`<span class="plate">${esc(o.placa)}</span><b>${esc(o.id)}</b>`; $('shDesc').textContent=t.descripcion;
+  S.sheet={id,res:null,file:null,files:[]};
+  $('shMeta').innerHTML=`<span class="plate">${esc(o.placa)}</span><b>${esc(o.id)}</b><span>Emitida ${esc(dia(o.emitida))}</span>`; $('shDesc').textContent=t.descripcion;
   document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false'));
-  $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shPrev').hidden=true; $('shErr').textContent='';
+  $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shCam').value=''; pintarFotos(); prepararFin(); $('shErr').textContent='';
   $('shOk').disabled=false; $('shOk').textContent='Guardar cierre'; req(); $('sheet').hidden=false;
 }
 // El administrador cierra la orden entera de una vez (p. ej. un auxilio en ruta, de noche, desde su casa).
 function abrirOrden(oid, res){
   const o=S.ord.find(x=>x.id===oid)||{}; const pend=trDe(oid).filter(t=>t.estado==='PENDIENTE');
   if(!pend.length) return;
-  S.sheet={orden:oid,ids:pend.map(t=>t.id),res,file:null};
+  S.sheet={orden:oid,ids:pend.map(t=>t.id),res,file:null,files:[]};
   $('shMeta').innerHTML=`<span class="plate">${esc(o.placa)}</span><b>${esc(o.id)}</b>`;
   $('shDesc').textContent=(res==='HECHO'?'Finalizar':'Anular')+` los ${pend.length} trabajo(s) pendientes de esta orden.`;
   document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===res)));
-  $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shPrev').hidden=true; $('shErr').textContent='';
+  $('shMot').value=''; $('shCom').value=''; $('shFoto').value=''; $('shCam').value=''; pintarFotos(); prepararFin(); $('shErr').textContent='';
   $('shOk').disabled=false; $('shOk').textContent='Guardar cierre'; req(); $('sheet').hidden=false;
 }
 function cerrarHoja(){ $('sheet').hidden=true; S.sheet=null; }
 function req(){ const r=S.sheet&&S.sheet.res; $('shErr').textContent=''; $('motBox').hidden=r!=='ANULADO';
+  $('finBox').hidden=r!=='HECHO';
   $('comReq').textContent=(r==='NO_SE_PUDO'||(r==='ANULADO'&&$('shMot').value==='Otro'))?'(obligatorio)':'(opcional)';
-  $('fotoReq').textContent=r==='HECHO'?(esAdm()?'(opcional para el administrador; sin foto, escribe qué se hizo)':'(obligatoria)'):'(opcional)';
+  $('fotoReq').textContent=r==='HECHO'?(esAdm()?'(opcional para el administrador; sin foto, escribe qué se hizo)':'(al menos una; puedes poner varias)'):'(opcional; puedes poner varias)';
   if(r==='HECHO'&&esAdm()) $('comReq').textContent='(obligatorio si no hay foto)'; }
 $('shMot').onchange=req; $('shNo').onclick=cerrarHoja; $('shBg').onclick=cerrarHoja;
-$('shFoto').onchange=e=>{ const f=e.target.files[0]; S.sheet.file=f||null; if(f){ $('shPrev').src=URL.createObjectURL(f); $('shPrev').hidden=false; } };
+// 2.57: fecha en que se terminó (por defecto hoy) y si lo hizo solo (por defecto) o acompañado.
+const companeros = () => (S.tecs||[]).filter(t=>t.id!==S.uid&&t.nombre&&!t.es_admin&&t.activo!==false).map(t=>t.nombre).sort();
+function pintarCon(estado, cajaSolo, cajaCon){
+  document.querySelectorAll(cajaSolo+' [data-solo]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.solo==='1')===!estado.acomp)));
+  const box=document.querySelector(cajaCon); box.hidden=!estado.acomp;
+  box.innerHTML=estado.acomp?companeros().map(n=>`<button type="button" class="chip" data-con="${esc(n)}" aria-pressed="${estado.con.includes(n)}">${esc(n)}</button>`).join(''):'';
+}
+function prepararFin(){
+  const f=$('shFecha'), hoy=hoyISO(); f.value=hoy; f.max=hoy;
+  const m=new Date(hoy+'T12:00:00'); m.setDate(m.getDate()-60); f.min=m.toISOString().slice(0,10);
+  S.sheet.acomp=false; S.sheet.con=[]; pintarCon(S.sheet,'#finBox','#conBox');
+}
+$('finBox').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||!S.sheet) return;
+  if(b.dataset.solo!==undefined){ S.sheet.acomp=b.dataset.solo==='0'; if(!S.sheet.acomp) S.sheet.con=[]; }
+  else if(b.dataset.con){ const n=b.dataset.con, i=S.sheet.con.indexOf(n); i<0?S.sheet.con.push(n):S.sheet.con.splice(i,1); }
+  pintarCon(S.sheet,'#finBox','#conBox');
+});
+// 2.57: una o más fotos (hasta 6). Cada toque de «+ Agregar foto» suma; la × quita.
+const MAX_FOTOS = 6;
+function pintarFotos(){
+  const fs=(S.sheet&&S.sheet.files)||[];
+  if(S.sheet) S.sheet.file=fs[0]||null;
+  $('shFotos').innerHTML=fs.map((f,i)=>`<span class="ft"><img src="${URL.createObjectURL(f)}" alt="Foto ${i+1}"><button type="button" data-qf="${i}" aria-label="Quitar foto">×</button></span>`).join('');
+  $('shNF').textContent=fs.length?` ${fs.length} de ${MAX_FOTOS}`:'';
+}
+// 2.59.3: «Tomar foto» abre la cámara; «Elegir de la galería» deja escoger fotos ya tomadas (varias).
+$('shFoto').onchange=$('shCam').onchange=e=>{ const sh=S.sheet; if(!sh) return; sh.files=(sh.files||[]).concat([...e.target.files]).slice(0,MAX_FOTOS); e.target.value=''; pintarFotos(); };
+$('shFotos').addEventListener('click',e=>{ const b=e.target.closest('[data-qf]'); if(!b||!S.sheet) return; S.sheet.files.splice(+b.dataset.qf,1); pintarFotos(); });
 // Estándar de fotos: lado largo 1600 px, JPEG 82 %, orientación corregida, sin GPS ni datos del teléfono.
 // Si pasa de 900 KB baja la calidad, y en último caso el tamaño, hasta entrar (la nube rechaza más de 1 MB).
 const FOTO = { lado: 1600, calidad: 0.82, maxBytes: 900 * 1024 };
@@ -517,7 +882,7 @@ async function cargarImagen(file){
   try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); }
   catch(_) {
     const url = URL.createObjectURL(file);
-    try { return await new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=url; }); }
+    try { return await new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>no(new Error('FOTO_FORMATO')); i.src=url; }); }
     finally { setTimeout(()=>URL.revokeObjectURL(url), 1000); }
   }
 }
@@ -537,15 +902,28 @@ async function comprimir(file){
 }
 // Envía un cierre: primero la foto, después la regla de la nube. La ruta de la foto es fija para ese
 // cierre, así un reintento (por ejemplo desde la cola sin señal) no deja fotos repetidas.
+async function subirFoto(ruta, blob){
+  const up=await sb.storage.from('evidencias').upload(ruta, blob, {contentType:'image/jpeg', upsert:false});
+  if(up.error && !/exists|Duplicate|409/i.test(up.error.message+(up.error.statusCode||''))) throw up.error;
+}
 async function enviar(c){
-  let ruta=null;
-  if(c.blob){
-    ruta=`${c.id}/${c.t}.jpg`;
-    const up=await sb.storage.from('evidencias').upload(ruta, c.blob, {contentType:'image/jpeg', upsert:false});
-    if(up.error && !/exists|Duplicate|409/i.test(up.error.message+(up.error.statusCode||''))) throw up.error;
+  const blobs=c.blobs||(c.blob?[c.blob]:[]);
+  const rutas=blobs.map((b,i)=>i?`${c.id}/${c.t}_${i+1}.jpg`:`${c.id}/${c.t}.jpg`);
+  for(const [i,b] of blobs.entries()) await subirFoto(rutas[i], b);
+  const args={p_trabajo:c.id,p_estado:c.res,p_comentario:c.com||null,p_motivo:c.mot,p_foto:rutas[0]||null};
+  if(rutas.length>1) args.p_fotos=rutas.slice(1);
+  if(c.res==='HECHO'&&c.fecha){ args.p_fecha=c.fecha; if((c.con||[]).length) args.p_con=c.con; }
+  let { error } = await sb.rpc('cerrar_trabajo',args);
+  // Si la nube todavía no tiene el paso 08, se cierra con lo de siempre (la primera foto, hoy).
+  if(error && (args.p_fotos||args.p_fecha) && /PGRST202|p_fotos|p_fecha|function/i.test((error.code||'')+' '+(error.message||''))){
+    delete args.p_fotos; delete args.p_fecha; delete args.p_con; ({ error } = await sb.rpc('cerrar_trabajo',args));
   }
-  const { error } = await sb.rpc('cerrar_trabajo',{p_trabajo:c.id,p_estado:c.res,p_comentario:c.com||null,p_motivo:c.mot,p_foto:ruta});
-  if(error){ if(ruta && !esRed(error)) sb.storage.from('evidencias').remove([ruta]).catch(()=>{}); throw error; }  // no deja fotos huérfanas
+  if(error){ if(rutas.length && !esRed(error)) sb.storage.from('evidencias').remove(rutas).catch(()=>{}); throw error; }  // no deja fotos huérfanas
+}
+async function comprimirTodas(files, btn){
+  const out=[];
+  for(const [i,f] of (files||[]).entries()){ if(btn) btn.textContent=`Preparando foto ${i+1} de ${files.length}…`; out.push(await comprimir(f)); }
+  return out;
 }
 $('shOk').onclick = async () => {
   const sh=S.sheet, err=$('shErr'); err.textContent='';
@@ -555,12 +933,16 @@ $('shOk').onclick = async () => {
   if((sh.res==='NO_SE_PUDO'||mot==='Otro')&&!com) return err.textContent=ERRORES.FALTA_COMENTARIO;
   if(sh.res==='HECHO'&&!sh.file&&!esAdm()) return err.textContent=ERRORES.FALTA_FOTO;
   if(sh.res==='HECHO'&&!sh.file&&esAdm()&&!com) return err.textContent='Sin foto, escribe qué se hizo.';
+  const fecha=$('shFecha').value||hoyISO();
+  if(sh.res==='HECHO'&&(fecha>hoyISO()||fecha<$('shFecha').min)) return err.textContent='La fecha no puede ser futura ni de hace más de 60 días.';
+  if(sh.res==='HECHO'&&sh.acomp&&!sh.con.length) return err.textContent='Marca con quién lo hiciste, o elige «Solo».';
+  const fin = sh.res==='HECHO' ? {fecha, con:sh.acomp?[...sh.con]:[]} : {};
   const btn=$('shOk'); btn.disabled=true;
-  if(sh.orden){ return cerrarOrdenEntera(sh, com, mot, btn, err); }
+  if(sh.orden){ return cerrarOrdenEntera(sh, com, mot, btn, err, fin); }
   let c;
   try{
-    btn.textContent = sh.file ? 'Preparando foto…' : 'Guardando…';
-    c={id:sh.id,res:sh.res,com,mot,t:Date.now(),blob: sh.file ? await comprimir(sh.file) : null};
+    btn.textContent = 'Guardando…';
+    c={id:sh.id,res:sh.res,com,mot,...fin,t:Date.now(),blobs: await comprimirTodas(sh.files, btn)};
   }catch(e){ err.textContent=ERRORES[codigoDe(e)]||'No se pudo leer la foto. Tómala otra vez.'; btn.disabled=false; btn.textContent='Guardar cierre'; return; }
   if(!navigator.onLine){ await encolar(c); cerrarHoja(); toast('Sin señal: el cierre quedó guardado y se envía solo.'); render(); return; }
   try{
@@ -575,15 +957,15 @@ $('shOk').onclick = async () => {
   }
 };
 
-async function cerrarOrdenEntera(sh, com, mot, btn, err){
-  let blob=null;
-  try{ if(sh.file){ btn.textContent='Preparando foto…'; blob=await comprimir(sh.file); } }
+async function cerrarOrdenEntera(sh, com, mot, btn, err, fin){
+  let blobs=[];
+  try{ blobs=await comprimirTodas(sh.files, btn); }
   catch(e){ err.textContent=ERRORES[codigoDe(e)]||'No se pudo leer la foto.'; btn.disabled=false; btn.textContent='Guardar cierre'; return; }
   if(!navigator.onLine){ err.textContent='Para cerrar la orden entera hace falta señal.'; btn.disabled=false; btn.textContent='Guardar cierre'; return; }
   let hechos=0; const fallos=[];
   for(const [n,id] of sh.ids.entries()){
     btn.textContent=`Guardando ${n+1} de ${sh.ids.length}…`;
-    try{ await enviar({id,res:sh.res,com,mot,t:Date.now()+n,blob}); hechos++; }
+    try{ await enviar({id,res:sh.res,com,mot,...(fin||{}),t:Date.now()+n,blobs}); hechos++; }
     catch(e){ const k=codigoDe(e); if(k!=='YA_CERRADO') fallos.push(ERRORES[k]||'error'); }
   }
   cerrarHoja(); cargar();
