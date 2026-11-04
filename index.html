@@ -261,6 +261,21 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
     </form>
   </div>
 </div>
+<div id="shAdd" hidden>
+  <div class="sheet-bg" data-cerrar="add"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="aT">
+    <form class="wrap frm" id="fAdd">
+      <div><h3 id="aT">Añadir trabajo a la orden</h3><p class="sub" id="aSub"></p></div>
+      <div><label class="lb" for="aDesc">Qué hay que hacer</label>
+        <textarea id="aDesc" maxlength="500" required placeholder="Por ejemplo: cambiar zapatas del eje 2"></textarea></div>
+      <div><label class="lb">Prioridad</label>
+        <div class="chips" id="aCrit"><button type="button" class="chip" data-ac="3" aria-pressed="false">Baja</button><button type="button" class="chip" data-ac="5" aria-pressed="true">Media</button><button type="button" class="chip" data-ac="8" aria-pressed="false">Alta</button></div></div>
+      <p class="sub">Entra como un trabajo más de la orden: se cierra con «Cerrar trabajo», con su foto, igual que los demás.</p>
+      <div class="err" id="aErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="button" data-cerrar="add">Cancelar</button><button class="btn primary" type="submit" id="aOk">Añadir</button></div>
+    </form>
+  </div>
+</div>
 <div id="shNota" hidden>
   <div class="sheet-bg" data-cerrar="nota"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="nT">
@@ -315,6 +330,7 @@ const SEM_ORDEN = ['VENCIDO','CRITICO','PROXIMO','OK','SIN DATO','INOPERATIVA'];
 const CAT = {MECANICO:'Mecánico',ELECTRICO:'Eléctrico',INFRAESTRUCTURA:'Infraestructura',NEUMATICO:'Neumático',PINTURA:'Pintura',REFRIGERADO:'Refrigerado',ACCESORIO:'Accesorio',IMPLEMENTO:'Implemento',PERMISOLOGIA:'Permisología'};
 const CERRADAS = ['CERRADA','CERRADA_PARCIAL','ANULADA'];
 const ERRORES = {
+  ORDEN_CERRADA:'Esa orden ya está cerrada: no se le pueden añadir trabajos.', FALTA_DESCRIPCION:'Escribe qué hay que hacer.',
   YA_CERRADO:'Otra persona ya cerró este trabajo.', FALTA_FOTO:'Toma una foto del trabajo terminado.',
   FALTA_COMENTARIO:'Escribe un comentario.', FALTA_MOTIVO:'Elige el motivo de la anulación.',
   NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar este trabajo.', NO_EXISTE:'Ese trabajo ya no existe.',
@@ -629,13 +645,42 @@ function pintarOrdenes(){
     return `<article class="orden" id="o-${esc(o.id)}"><button class="ohead" data-o="${esc(o.id)}" aria-expanded="${op}">
       <span class="plate">${esc(o.placa)}</span>
       <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · Emitida ${esc(dia(o.emitida))} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
-      <span class="prog">${ts.length?`${r}/${ts.length}`:'en blanco'}</span></button>
+      <span class="prog">${ts.length?`${r}/${ts.length}`:regsDe(o.id).length?`${regsDe(o.id).length} anotado(s)`:'en blanco'}</span></button>
       ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}
-      ${op&&!ts.length&&!CERRADAS.includes(o.estado)?`<div class="note" style="margin:0 12px 10px">Orden en blanco: no trae trabajos. Anota abajo lo que se hizo en la unidad.</div>`:''}
+      ${op&&!ts.length&&!regsDe(o.id).length&&!CERRADAS.includes(o.estado)?`<div class="note" style="margin:0 12px 10px">Orden en blanco: no trae trabajos. Anota abajo lo que se hizo en la unidad.</div>`:''}
       ${op&&esAdm()&&ts.some(t=>t.estado==='PENDIENTE'&&!enCola.has(t.id))?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" data-oc="${esc(o.id)}" data-ov="HECHO">Finalizar toda la orden</button><button class="btn sm" data-oc="${esc(o.id)}" data-ov="ANULADO">Anular toda la orden</button></div>`:''}
-      ${op&&S.reg_ok&&!CERRADAS.includes(o.estado)?`<div class="item"><span></span><div><button class="btn sm" data-ra="${esc(o.id)}" data-rp="${esc(o.placa)}">+ Añadir trabajo a esta orden</button></div></div>`:''}
+      ${op?anotadosEn(o.id):''}
+      ${op&&!CERRADAS.includes(o.estado)?`<div class="item"><span></span><div><button class="btn sm" data-ra="${esc(o.id)}" data-rp="${esc(o.placa)}" data-re="${esc(o.especialidad||'')}">+ Añadir trabajo a esta orden</button></div></div>`:''}
       ${op&&esAdm()?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn sm" data-pdf="${esc(o.id)}">Descargar PDF</button><button class="btn sm" data-pdfs="${esc(o.id)}">Compartir / Imprimir</button></div>`:''}</article>`; }).join('');
 }
+// 2.63: lo que antes se anotó «como hecho» desde una orden (registro aparte) también se ve en ella
+const regsDe = oid => (S.reg||[]).filter(r=>r.orden_id===oid && r.tipo==='REALIZADO');
+function anotadosEn(oid){
+  return regsDe(oid).map(r=>`<div class="item"><span class="crit c-lo">✓</span><div class="ib">
+    <span class="desc">${esc(r.descripcion)}</span>
+    <span class="meta"><span class="pill e-HECHO">Anotado como hecho</span>${r.atendio?`<span>${esc(r.atendio)}</span>`:''}<span>${esc(dia(r.fecha))}</span>${(r.fotos||[]).length?`<span>${r.fotos.length} foto(s)</span>`:''}
+    <span>${r.aplicado_en?'Ya está en la base':'Pasa a la base en la próxima vuelta'}</span></span></div></div>`).join('');
+}
+function abrirAgregar(orden, placa, esp){
+  S.add={orden, crit:5};
+  $('aSub').textContent=`${orden} · ${placa}${esp?' · '+esp:''}`; $('aDesc').value=''; $('aErr').textContent='';
+  $('aOk').disabled=false; $('aOk').textContent='Añadir';
+  document.querySelectorAll('#aCrit .chip').forEach(x=>x.setAttribute('aria-pressed',x.dataset.ac==='5'));
+  $('shAdd').hidden=false; setTimeout(()=>$('aDesc').focus(),50);
+}
+$('aCrit').addEventListener('click',e=>{ const b=e.target.closest('[data-ac]'); if(!b||!S.add) return;
+  S.add.crit=+b.dataset.ac; document.querySelectorAll('#aCrit .chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
+document.querySelectorAll('[data-cerrar="add"]').forEach(b=>b.onclick=()=>$('shAdd').hidden=true);
+$('fAdd').onsubmit = async e => {
+  e.preventDefault(); const a=S.add, d=$('aDesc').value.trim(); if(!a) return;
+  if(!d) return $('aErr').textContent=ERRORES.FALTA_DESCRIPCION;
+  $('aOk').disabled=true; $('aOk').textContent='Añadiendo…';
+  const { data, error } = await sb.rpc('agregar_trabajo_orden',{ p_orden:a.orden, p_descripcion:d, p_criticidad:a.crit });
+  if(error){ const k=codigoDe(error); $('aOk').disabled=false; $('aOk').textContent='Añadir';
+    return $('aErr').textContent = ERRORES[k] || (esRed(error)?'Sin señal: no se añadió. Inténtalo otra vez.'
+      : /agregar_trabajo_orden/.test(error.message||'')?'Falta activar esto en la nube (SQL 11).':'No se pudo añadir: '+(error.message||'')); }
+  $('shAdd').hidden=true; S.open.add(a.orden); await cargar(); toast(`Trabajo añadido a ${a.orden}. Ya se puede cerrar.`);
+};
 function miniaturas(t){
   const fs=[t.foto_path,...(t.fotos||[])].filter(p=>p&&S.urls[p]);
   return fs.length?`<span class="meta">${fs.map(p=>`<a href="${esc(S.urls[p])}" target="_blank" rel="noopener"><img class="thumb" src="${esc(S.urls[p])}" alt="Foto del cierre"></a>`).join('')}</span>`:'';
@@ -646,7 +691,7 @@ function item(t, cola){
   const quien = t.cerrado_por ? `<span>${esc(S.tec[t.cerrado_por]||'Técnico')}</span><span>${fmt(t.cerrado_en)}</span>` : '';
   return `<div class="item${t.estado==='ANULADO'||t.estado==='NO_TRABAJADO'?' anul':''}"><span class="crit ${critCls(t.criticidad)}">${t.criticidad}</span><div class="ib">
     <span class="desc">${esc(t.descripcion)}</span>
-    <span class="meta"><span class="pill e-${estado}">${EST[estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${quien}</span>
+    <span class="meta"><span class="pill e-${estado}">${EST[estado]}${t.motivo?' · '+esc(t.motivo):''}</span>${t.agregado_por?`<span>Añadido por ${esc(S.tec[t.agregado_por]||'el taller')}</span>`:''}${quien}</span>
     ${t.comentario?`<span class="meta">“${esc(t.comentario)}”</span>`:''}
     ${miniaturas(t)}
     ${acc}</div></div>`;
@@ -849,7 +894,7 @@ document.addEventListener('click',e=>{
   else if(b.dataset.vc){ S.verCat=b.dataset.vc; pintarPlan(); }
   else if(b.dataset.rg) abrirReg(b.dataset.rg);
   else if(b.dataset.rgt){ const pl=$('rgPlaca').value; abrirReg(b.dataset.rgt, pl, S.rg&&S.rg.orden); }
-  else if(b.dataset.ra) abrirReg('REALIZADO', b.dataset.rp, b.dataset.ra);
+  else if(b.dataset.ra) abrirAgregar(b.dataset.ra, b.dataset.rp, b.dataset.re);
   else if(b.dataset.ax) cambiarAux(b.dataset.ax, b.dataset.ae);
   else if(b.dataset.sal) salioDelTaller(b.dataset.sal);
   else if(b.dataset.ir){ S.open.add(b.dataset.ir); S.bOrd=''; $('bOrd').value=''; S.esp='TODAS'; irA('ord');
