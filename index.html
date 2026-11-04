@@ -28,6 +28,10 @@
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 [hidden]{display:none!important}
+.gen-l{display:flex;flex-direction:column;gap:6px;max-height:38vh;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--surface-2)}
+.gen-i{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:8px;background:var(--surface);cursor:pointer}
+.gen-i input{width:20px;height:20px;flex:none;margin-top:2px}
+.gen-ok{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:12px 14px;font-weight:600}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
 header .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:10px}
@@ -177,6 +181,7 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
 
     <section id="pPlan" data-p="plan"></section>
     <section id="pOrd" data-p="ord" hidden>
+      <button class="btn primary" id="bGen" hidden style="width:100%;margin-bottom:10px">+ Generar orden de servicio</button>
       <input type="search" class="buscar" id="bOrd" placeholder="Buscar placa u orden" aria-label="Buscar placa u orden">
       <div class="bar2"><div class="chips" id="chips"></div>
         <button class="chip" id="verCerr" aria-pressed="false">Ver cerradas</button></div>
@@ -263,6 +268,31 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
     </form>
   </div>
 </div>
+<div id="shGen" hidden>
+  <div class="sheet-bg" data-cerrar="gen"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="gT">
+    <form class="wrap frm" id="fGen">
+      <div><h3 id="gT">Generar orden de servicio</h3><p class="sub" id="gSub">Elige la placa y los trabajos. La orden sale con su número y la puedes imprimir desde aquí.</p></div>
+      <div id="gPaso1" class="frm">
+        <div><label class="lb" for="gPlaca">Placa</label><input type="text" id="gPlaca" list="dlFlota" autocomplete="off" placeholder="Por ejemplo TAU-942" style="text-transform:uppercase"></div>
+        <div class="note" id="gAbiertas" hidden></div>
+        <div id="gEspBox" hidden><label class="lb">Especialidad</label><div class="chips" id="gEsp" style="flex-wrap:wrap"></div></div>
+        <div id="gListBox" hidden><label class="lb" id="gListLb">Trabajos</label><div class="gen-l" id="gList"></div>
+          <div class="chips" style="margin-top:6px"><button type="button" class="chip" id="gTodos">Marcar todos</button><button type="button" class="chip" id="gNinguno">Ninguno</button></div></div>
+        <div id="gDatos" hidden class="frm">
+          <div><label class="lb" for="gCond" id="gCondLb">Conductor</label><input type="text" id="gCond" maxlength="60"></div>
+          <div><label class="lb" for="gOper">Operario</label><input type="text" id="gOper" maxlength="60" list="dlTec"></div>
+        </div>
+      </div>
+      <div id="gPaso2" hidden class="frm">
+        <div class="gen-ok" id="gOkTxt"></div>
+        <div class="actions" style="justify-content:stretch;flex-wrap:wrap"><button class="btn primary" type="button" id="gPdf" style="flex:1">Descargar PDF</button><button class="btn" type="button" id="gShare" style="flex:1">Compartir / Imprimir</button></div>
+      </div>
+      <div class="err" id="gErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="button" data-cerrar="gen" id="gCerrar">Cancelar</button><button class="btn primary" type="submit" id="gOk" disabled>Generar orden</button></div>
+    </form>
+  </div>
+</div>
 <datalist id="dlFlota"></datalist><datalist id="dlTec"></datalist>
 <div class="toast" id="toast" hidden></div>
 
@@ -284,7 +314,9 @@ const ERRORES = {
   NO_AUTORIZADO:'Tu usuario no está habilitado para cerrar este trabajo.', NO_EXISTE:'Ese trabajo ya no existe.',
   FOTO_INVALIDA:'La foto no corresponde a este trabajo. Vuelve a tomarla.',
   FOTO_GRANDE:'La foto es demasiado pesada. Tómala de nuevo con buena luz.',
-  FOTO_FORMATO:'Esa foto no se pudo abrir (puede estar en formato HEIC). Elige otra o tómala con «Tomar foto».'
+  FOTO_FORMATO:'Esa foto no se pudo abrir (puede estar en formato HEIC). Elige otra o tómala con «Tomar foto».',
+  PENDIENTE_NO_DISPONIBLE:'Algún trabajo ya entró en otra orden mientras elegías. Vuelve a elegir la placa.',
+  FALTA_PLACA:'Escribe la placa.', FALTA_ESPECIALIDAD:'Elige la especialidad.'
 };
 const S = { ord:[], trab:[], tec:{}, me:null, uid:null, plan:null, ace:null, esp:'TODAS', verCerradas:false,
             open:new Set(), sheet:null, urls:{}, tab:'plan', bOrd:'', semAce:'', bAce:'', histTodos:false, cola:[],
@@ -385,6 +417,9 @@ async function cargar(){
     S.planes=sem.length?sem:(S.plan?[{...S.plan,hoy:1}]:[]);
     if(!S.planes.some(p=>p.f===S.dia)){ const h=S.planes.filter(p=>p.hoy); S.dia=(h.length?h[h.length-1]:S.planes[0]||{}).f||''; }
     S.flota=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.ti]));
+    // 2.61: para la orden que se genera en el celular
+    S.cond=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.cd||'']));
+    S.ops=(pub.flota&&pub.flota.datos&&pub.flota.datos.op)||{}; S.emp=(pub.flota&&pub.flota.datos&&pub.flota.datos.emp)||{};
     S.porPend={}; for(const x of S.trab) if(x.pendiente_id){ const a=S.porPend[x.pendiente_id]; if(!a||x.estado==='HECHO'||(x.estado==='ANULADO'&&a!=='HECHO')) S.porPend[x.pendiente_id]=x.estado; }
     S.reg_ok=!rg.error; S.reg=rg.data||[]; S.est=es.data||[];
     S.notas=Object.fromEntries(((np&&!np.error&&np.data)||[]).filter(n=>n.nota).map(n=>[n.fecha+'|'+n.placa,n.nota]));
@@ -570,6 +605,7 @@ const esAdm = () => !!(S.me && S.me.es_admin);
 // Cada técnico ve solo las órdenes de su especialidad (además de la regla de la nube).
 const ordMia = o => esAdm() || misEsps().includes(sinT(o.especialidad)) || S.trab.some(t=>t.orden_id===o.id&&t.cerrado_por===S.uid);
 function pintarOrdenes(){
+  $('bGen').hidden=!esAdm();
   const abiertas=S.ord.filter(o=>!CERRADAS.includes(o.estado)&&ordMia(o));
   const esps=['TODAS',...new Set(abiertas.map(o=>o.especialidad).filter(Boolean))];
   if(!esps.includes(S.esp)) S.esp='TODAS';
@@ -589,7 +625,8 @@ function pintarOrdenes(){
       ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}
       ${op&&!ts.length&&!CERRADAS.includes(o.estado)?`<div class="note" style="margin:0 12px 10px">Orden en blanco: no trae trabajos. Anota abajo lo que se hizo en la unidad.</div>`:''}
       ${op&&esAdm()&&ts.some(t=>t.estado==='PENDIENTE'&&!enCola.has(t.id))?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" data-oc="${esc(o.id)}" data-ov="HECHO">Finalizar toda la orden</button><button class="btn sm" data-oc="${esc(o.id)}" data-ov="ANULADO">Anular toda la orden</button></div>`:''}
-      ${op&&S.reg_ok&&!CERRADAS.includes(o.estado)?`<div class="item"><span></span><div><button class="btn sm" data-ra="${esc(o.id)}" data-rp="${esc(o.placa)}">+ Añadir trabajo a esta orden</button></div></div>`:''}</article>`; }).join('');
+      ${op&&S.reg_ok&&!CERRADAS.includes(o.estado)?`<div class="item"><span></span><div><button class="btn sm" data-ra="${esc(o.id)}" data-rp="${esc(o.placa)}">+ Añadir trabajo a esta orden</button></div></div>`:''}
+      ${op&&esAdm()?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn sm" data-pdf="${esc(o.id)}">Descargar PDF</button><button class="btn sm" data-pdfs="${esc(o.id)}">Compartir / Imprimir</button></div>`:''}</article>`; }).join('');
 }
 function miniaturas(t){
   const fs=[t.foto_path,...(t.fotos||[])].filter(p=>p&&S.urls[p]);
@@ -815,6 +852,9 @@ document.addEventListener('click',e=>{
   else if(b.id==='verCerr'){ S.verCerradas=!S.verCerradas; pintarOrdenes(); }
   else if(b.dataset.c) abrir(b.dataset.c);
   else if(b.dataset.oc) abrirOrden(b.dataset.oc, b.dataset.ov);
+  else if(b.dataset.pdf) entregarPDF(b.dataset.pdf, false, b);
+  else if(b.dataset.pdfs) entregarPDF(b.dataset.pdfs, true, b);
+  else if(b.dataset.ge){ S.gen.esp=b.dataset.ge; pintarGen(true); }
   else if(b.dataset.v&&S.sheet){ S.sheet.res=b.dataset.v; document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b)); req(); }
   if(!b.closest('#menu') && b.id!=='bMenu') $('menu').hidden=true;
 });
@@ -1002,6 +1042,138 @@ async function enviarCola(){
     }
   } finally { enviando=false; }
   if(n){ toast(`${n} cierre(s) guardados se enviaron.`); cargar(); } else render();
+}
+
+// ---------- Generar orden desde el celular (2.61) ----------
+// Solo el administrador. La orden sale con su número (serie OS-C-<año>, propia, como la
+// OS-S del supervisor), llega al instante a los técnicos y el Generador la trae a su base
+// en la siguiente vuelta. El PDF tiene el mismo formato que el del Generador.
+S.gen={};
+const CODIGO = e => sinT(e).replace(/[^A-Z]/g,'');
+const ddmm = iso => iso ? String(iso).slice(8,10)+'/'+String(iso).slice(5,7)+'/'+String(iso).slice(0,4) : '';
+$('bGen').onclick = () => { S.gen={placa:'',pend:[],esp:'',marcados:new Set(),hecha:null};
+  $('gPlaca').value=''; $('gErr').textContent=''; $('gPaso1').hidden=false; $('gPaso2').hidden=true;
+  $('gOk').hidden=false; $('gCerrar').textContent='Cancelar'; pintarGen(); $('shGen').hidden=false; setTimeout(()=>$('gPlaca').focus(),50); };
+document.querySelectorAll('[data-cerrar="gen"]').forEach(b=>b.onclick=()=>{ $('shGen').hidden=true; });
+let tGen; $('gPlaca').addEventListener('input',()=>{ clearTimeout(tGen); tGen=setTimeout(buscarGen,350); });
+async function buscarGen(){
+  const P=sinT($('gPlaca').value).replace(/\s+/g,''); $('gErr').textContent='';
+  if(P.length<6){ S.gen.placa=''; S.gen.pend=[]; pintarGen(); return; }
+  S.gen.placa=P;
+  const r=await sb.from('pendientes').select('*').eq('placa',P).eq('estado','ABIERTO');
+  if(r.error){ $('gErr').textContent='No se pudieron traer los pendientes. Revisa la señal.'; return; }
+  if(S.gen.placa!==P) return;
+  S.gen.pend=(r.data||[]).sort((a,b)=>String(a.primer_reporte).localeCompare(String(b.primer_reporte)));
+  const esps=[...new Set(S.gen.pend.map(x=>x.especialidad))];
+  if(!esps.includes(S.gen.esp)) S.gen.esp=esps[0]||'';
+  $('gCond').value=S.cond&&S.cond[P]||'';
+  pintarGen(true);
+}
+function pintarGen(nuevaEsp){
+  const g=S.gen, P=g.placa;
+  $('gEspBox').hidden=!P; $('gListBox').hidden=!P; $('gDatos').hidden=!P;
+  const ab=S.ord.filter(o=>o.placa===P&&!CERRADAS.includes(o.estado));
+  $('gAbiertas').hidden=!ab.length; $('gAbiertas').textContent=ab.length?`Ya tiene abierta(s): ${ab.map(o=>o.id+' ('+o.especialidad+')').join(', ')}.`:'';
+  if(!P){ $('gOk').disabled=true; return; }
+  const cnt={}; g.pend.forEach(x=>cnt[x.especialidad]=(cnt[x.especialidad]||0)+1);
+  const todas=[...new Set([...Object.keys(cnt),...Object.values(CAT)])];
+  $('gEsp').innerHTML=todas.map(e=>`<button type="button" class="chip" data-ge="${esc(e)}" aria-pressed="${g.esp===e}">${esc(e)}${cnt[e]?' · '+cnt[e]:''}</button>`).join('');
+  const lista=g.pend.filter(x=>x.especialidad===g.esp);
+  if(nuevaEsp) g.marcados=new Set(lista.map(x=>x.id));
+  $('gListLb').textContent=lista.length?`Trabajos de ${g.esp} (${g.marcados.size} de ${lista.length} marcados)`:'Trabajos';
+  $('gList').innerHTML=lista.length?lista.map(x=>`<label class="gen-i"><input type="checkbox" data-gp="${esc(x.id)}" ${g.marcados.has(x.id)?'checked':''}>
+     <span class="crit ${critCls(x.criticidad)}">${x.criticidad}</span><span><span class="desc">${esc(x.descripcion)}</span>
+     <span class="meta">Desde ${esc(dia(x.primer_reporte))} · ${diasDesde(x.primer_reporte)} días</span></span></label>`).join('')
+     :`<div class="empty" style="padding:10px"><b>Sin pendientes de ${esc(g.esp||'esta especialidad')}</b>Puedes generar la orden en blanco para anotar lo que se haga.</div>`;
+  const ti=(lista[0]&&lista[0].unidad)||(S.flota[P]==='C'?'CARRETA':'TRACTO');
+  $('gCondLb').textContent=ti==='CARRETA'?'Responsable':'Conductor';
+  if(nuevaEsp) $('gOper').value=(S.ops||{})[CODIGO(g.esp)]||'';
+  $('gOk').disabled=!g.esp;
+  $('gOk').textContent=g.marcados.size?`Generar orden (${g.marcados.size})`:'Generar orden en blanco';
+}
+$('gList').addEventListener('change',e=>{ const c=e.target.closest('[data-gp]'); if(!c) return;
+  c.checked?S.gen.marcados.add(c.dataset.gp):S.gen.marcados.delete(c.dataset.gp); pintarGen(); });
+$('gTodos').onclick=()=>pintarGen(true);
+$('gNinguno').onclick=()=>{ S.gen.marcados=new Set(); pintarGen(); };
+$('fGen').onsubmit = async e => {
+  e.preventDefault(); const g=S.gen; if(!g.placa||!g.esp) return;
+  const lista=g.pend.filter(x=>x.especialidad===g.esp&&g.marcados.has(x.id));
+  const ti=(lista[0]&&lista[0].unidad)||(S.flota[g.placa]==='C'?'CARRETA':'TRACTO');
+  $('gOk').disabled=true; $('gOk').textContent='Generando…'; $('gErr').textContent='';
+  const { data, error } = await sb.rpc('crear_orden_celular',{ p_placa:g.placa, p_unidad:ti, p_especialidad:g.esp,
+    p_pendientes:lista.map(x=>x.id), p_conductor:$('gCond').value.trim()||null, p_operario:$('gOper').value.trim()||null });
+  if(error){ const k=codigoDe(error); $('gErr').textContent=ERRORES[k]||(esRed(error)?'Sin señal: no se generó. Inténtalo cuando vuelva.':'No se pudo generar la orden.');
+    $('gOk').disabled=false; pintarGen(); if(k==='PENDIENTE_NO_DISPONIBLE') buscarGen(); return; }
+  g.hecha=data.orden; await cargar();
+  $('gPaso1').hidden=true; $('gPaso2').hidden=false; $('gOk').hidden=true; $('gCerrar').textContent='Listo';
+  $('gOkTxt').textContent=`${data.orden} generada · ${g.placa} · ${g.esp} · ${data.trabajos} trabajo(s). Ya la ven los técnicos.`;
+  S.open.add(data.orden); pintarOrdenes(); toast(`${data.orden} generada.`);
+};
+$('gPdf').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,false,e.target);
+$('gShare').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,true,e.target);
+
+// El PDF de la orden, con el formato del Generador (A4 apaisado). Se arma con lo que hay en la nube.
+const PDF_LIBS=['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+                'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'];
+const LOGO="__LOGO__";
+function cargarScript(src){ return new Promise((ok,mal)=>{ const a=document.createElement('script'); a.src=src; a.onload=ok; a.onerror=()=>mal(new Error('No se pudo cargar el PDF')); document.head.appendChild(a); }); }
+async function libsPDF(){ if(!window.jspdf) await cargarScript(PDF_LIBS[0]); if(!window.jspdf.jsPDF.API.autoTable) await cargarScript(PDF_LIBS[1]); }
+const COLOR_CRIT = c => c<=4?[146,208,80]:c<=5.5?[255,255,0]:c<=7.9?[255,192,0]:[255,0,0];
+async function armarPDF(oid){
+  await libsPDF();
+  const o=S.ord.find(x=>x.id===oid); if(!o) throw new Error('No encuentro la orden '+oid);
+  const ts=trDe(oid).filter(t=>t.estado!=='NO_TRABAJADO'&&t.estado!=='ANULADO');
+  const ids=ts.map(t=>t.pendiente_id).filter(Boolean), pend={};
+  if(ids.length){ let r=await sb.from('pendientes').select('id,primer_reporte,codigo').in('id',ids);
+    if(r.error) r=await sb.from('pendientes').select('id,primer_reporte').in('id',ids);
+    (r.data||[]).forEach(p=>pend[p.id]=p); }
+  const filas=ts.map(t=>({t,p:pend[t.pendiente_id]||{}})).sort((a,b)=>String(a.p.primer_reporte||'').localeCompare(String(b.p.primer_reporte||''))||String(a.t.id).localeCompare(String(b.t.id)));
+  const tracto=(o.unidad||'TRACTO').toUpperCase()!=='CARRETA', emp=S.emp||{};
+  const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const X=8, W=281, wl=63, wt=166, we=23, wv=W-wl-wt-we, hs=4.6, h=4.8, y0=8;
+  doc.setLineWidth(0.25); doc.setDrawColor(0);
+  doc.rect(X,y0,wl,4*hs); if(LOGO.startsWith('data:')){ try{ doc.addImage(LOGO,'PNG',X+3,y0+2,wl-6,4*hs-4,undefined,'FAST'); }catch(_){} }
+  doc.rect(X+wl,y0,wt,4*hs); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('ORDEN DE SERVICIO MANTENIMIENTO CORRECTIVO', X+wl+wt/2, y0+2*hs+1.5, {align:'center'});
+  const hoy=new Date(o.emitida||Date.now()), fh=String(hoy.getDate()).padStart(2,'0')+'/'+String(hoy.getMonth()+1).padStart(2,'0')+'/'+hoy.getFullYear();
+  [['Codigo:',emp.cod||''],['Version:',emp.ver||''],['Fecha:',fh],['N°',o.id]].forEach(([a,b],i)=>{ const yy=y0+i*hs;
+    doc.rect(X+wl+wt,yy,we,hs); doc.rect(X+wl+wt+we,yy,wv,hs); doc.setFontSize(6.8); doc.setFont('helvetica','bold');
+    doc.text(a,X+wl+wt+we/2,yy+hs/2+1.1,{align:'center'}); doc.setFont('helvetica','normal'); doc.text(String(b),X+wl+wt+we+wv/2,yy+hs/2+1.1,{align:'center'}); });
+  const izq=[['FECHA DE EMISION',fh],['ELABORADO POR',emp.por||''],['TIPO DE MANTENIMIENTO',emp.tipo||'CORRECTIVO'],['CATEGORIA',o.especialidad||'']];
+  const der=[[tracto?'CONDUCTOR':'RESPONSABLE',o.conductor||(S.cond||{})[o.placa]||'-'],['FECHA DE ENTREGA',''],['OPERARIO',o.operario||(S.ops||{})[CODIGO(o.especialidad)]||'POR DEFINIR'],['PLACA '+(tracto?'TRACTO':'CARRETA'),o.placa]];
+  const y1=y0+4*hs;
+  for(let i=0;i<4;i++){ const yy=y1+i*h;
+    doc.setFillColor(244,177,131); doc.rect(X,yy,wl,h,'FD'); doc.rect(X+wl+wt,yy,we,h,'FD');
+    doc.rect(X+wl,yy,wt,h); doc.rect(X+wl+wt+we,yy,wv,h);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.text(izq[i][0],X+wl/2,yy+h/2+1.1,{align:'center'});
+    doc.setFontSize(6.2); doc.text(der[i][0],X+wl+wt+we/2,yy+h/2+1.1,{align:'center'});
+    doc.setFont('helvetica',i===3?'bold':'normal'); doc.setFontSize(8.5); doc.text(String(izq[i][1]),X+wl+2,yy+h/2+1.2);
+    doc.setFont('helvetica',i===3?'bold':'normal'); doc.setFontSize(7.5); doc.text(doc.splitTextToSize(String(der[i][1]),wv-2)[0]||'',X+wl+wt+we+wv/2,yy+h/2+1.1,{align:'center'}); }
+  const cab=['ID','FECHA DE\nSOLICITUD','PLACA DEL\n'+(tracto?'TRACTO':'CARRETA'),'DESCRIPCION','CRITI-\nCIDAD','REQUERIMIENTO?\nMARCAR X','RESPONSABLE','FECHA\nINICIO','FECHA\nFINALIZADO','FIRMA'];
+  const rel=[26,22,24,100,13,27,25,21,23,30], tot=rel.reduce((a,b)=>a+b,0);
+  const cuerpo=filas.map(({t,p})=>[p.codigo||String(t.pendiente_id||'').replace(/^G-/,'').slice(0,8).toUpperCase(),ddmm(p.primer_reporte),o.placa,t.descripcion,String(t.criticidad),'','','','','']);
+  while(cuerpo.length<10) cuerpo.push(['','','','','','','','','','']);
+  doc.autoTable({startY:y1+4*h+3, head:[cab], body:cuerpo, theme:'grid', margin:{left:X,right:X},
+    styles:{fontSize:6.8,cellPadding:1.2,textColor:0,lineColor:0,lineWidth:0.2,valign:'middle',minCellHeight:6.2},
+    headStyles:{fillColor:[169,208,142],textColor:0,fontStyle:'bold',halign:'center',fontSize:6.5},
+    columnStyles:Object.fromEntries(rel.map((r,i)=>[i,{cellWidth:W*r/tot,halign:i===3?'left':'center'}])),
+    didParseCell:d=>{ if(d.section==='body'&&d.column.index===4&&d.cell.raw!==''){ d.cell.styles.fillColor=COLOR_CRIT(+d.cell.raw); d.cell.styles.fontStyle='bold'; } },
+    didDrawPage:()=>{ const n=doc.internal.getNumberOfPages(); doc.setFontSize(6); doc.setTextColor(120); doc.text('Pag. '+n,289,205,{align:'right'});
+      doc.text('Generada desde el celular'+(o.creada_por_nombre?' por '+o.creada_por_nombre:''),8,205); doc.setTextColor(0); }});
+  const cat=CODIGO(o.especialidad)||'ORDEN';
+  return {doc, nombre:`OS_${o.id}_${o.placa}_${cat}.pdf`};
+}
+async function entregarPDF(oid, compartir, btn){
+  const txt=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent='Armando PDF…'; }
+  try{
+    const {doc,nombre}=await armarPDF(oid);
+    if(compartir){
+      const blob=doc.output('blob'), f=new File([blob],nombre,{type:'application/pdf'});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f],title:nombre}); }catch(_){} }
+      else { const u=URL.createObjectURL(blob); window.open(u,'_blank'); }
+    } else doc.save(nombre);
+  }catch(e){ toast(esRed(e)?'Sin señal: no se pudo armar el PDF.':'No se pudo armar el PDF.'); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
 }
 
 sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.reload(); });
