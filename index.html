@@ -191,6 +191,8 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
     <section id="pHist" data-p="hist" hidden></section>
     <section id="pAux" data-p="aux" hidden></section>
     <section id="pPend" data-p="pend" hidden>
+      <div class="adm"><button class="btn primary" data-rg="PENDIENTE">+ Nuevo pendiente</button><button class="btn" id="pGenNueva">Generar orden</button></div>
+      <div id="pRecien"></div>
       <input type="search" class="buscar" id="bPend" placeholder="Buscar placa o trabajo" aria-label="Buscar placa o trabajo">
       <div class="chips" id="pChips" style="flex-wrap:wrap"></div>
       <div id="pLista"><div class="empty"><b>Cargando pendientes</b></div></div>
@@ -300,6 +302,11 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
         <div id="gEspBox" hidden><label class="lb">Especialidad</label><div class="chips" id="gEsp" style="flex-wrap:wrap"></div></div>
         <div id="gListBox" hidden><label class="lb" id="gListLb">Trabajos</label><div class="gen-l" id="gList"></div>
           <div class="chips" style="margin-top:6px"><button type="button" class="chip" id="gTodos">Marcar todos</button><button type="button" class="chip" id="gNinguno">Ninguno</button></div></div>
+        <div id="gNuevosBox" hidden><label class="lb" for="gNuevo">¿Algo que no está en la lista? (2.64)</label>
+          <div class="gen-l" id="gNuevos"></div>
+          <div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="gNuevo" maxlength="500" placeholder="Escribe el trabajo y pulsa «Agregar»" style="flex:1">
+          <button type="button" class="btn sm" id="gNuevoAdd">Agregar</button></div>
+          <span class="meta">Va en esta misma orden como un trabajo más, y queda como pendiente nuevo de la placa.</span></div>
         <div id="gDatos" hidden class="frm">
           <div><label class="lb" for="gCond" id="gCondLb">Conductor</label><input type="text" id="gCond" maxlength="60"><span class="meta" id="gCondDe"></span></div>
           <div><label class="lb">Operario</label><div class="note" id="gOper" style="margin:0"></div></div>
@@ -910,6 +917,7 @@ document.addEventListener('click',e=>{
   else if(b.dataset.ge){ S.gen.esp=b.dataset.ge; pintarGen(true); }
   else if(b.dataset.pe!==undefined){ S.pEsp=b.dataset.pe; pintarPend(); }
   else if(b.dataset.pp){ const k='pp:'+b.dataset.pp; S.open.has(k)?S.open.delete(k):S.open.add(k); pintarPend(); }
+  else if(b.id==='pGenNueva') abrirGen('', '');
   else if(b.dataset.pg) abrirGen(b.dataset.pg, b.dataset.pgEsp||'');
   else if(b.dataset.v&&S.sheet){ S.sheet.res=b.dataset.v; document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b)); req(); }
   if(!b.closest('#menu') && b.id!=='bMenu') $('menu').hidden=true;
@@ -1110,8 +1118,8 @@ const CODIGO = e => sinT(e).replace(/[^A-Z]/g,'');
 const operarioDe = e => ((S.ops||{})[CODIGO(e)]||'').trim();
 const ddmm = iso => iso ? String(iso).slice(8,10)+'/'+String(iso).slice(5,7)+'/'+String(iso).slice(0,4) : '';
 $('bGen').onclick = () => abrirGen();
-function abrirGen(placa, esp){ S.gen={placa:'',pend:[],esp:esp||'',marcados:new Set(),hecha:null};
-  $('gPlaca').value=''; $('gErr').textContent=''; $('gPaso1').hidden=false; $('gPaso2').hidden=true;
+function abrirGen(placa, esp){ S.gen={placa:'',pend:[],esp:esp||'',marcados:new Set(),hecha:null,nuevos:[]};
+  $('gPlaca').value=''; $('gNuevo').value=''; $('gErr').textContent=''; $('gPaso1').hidden=false; $('gPaso2').hidden=true;
   $('gOk').hidden=false; $('gCerrar').textContent='Cancelar'; pintarGen(); $('shGen').hidden=false;
   if(placa){ $('gPlaca').value=placa; buscarGen(); } else setTimeout(()=>$('gPlaca').focus(),50); }
 document.querySelectorAll('[data-cerrar="gen"]').forEach(b=>b.onclick=()=>{ $('shGen').hidden=true; });
@@ -1132,7 +1140,9 @@ async function buscarGen(){
 }
 function pintarGen(nuevaEsp){
   const g=S.gen, P=g.placa;
-  $('gEspBox').hidden=!P; $('gListBox').hidden=!P; $('gDatos').hidden=!P;
+  $('gEspBox').hidden=!P; $('gListBox').hidden=!P; $('gDatos').hidden=!P; $('gNuevosBox').hidden=!P;
+  $('gNuevos').innerHTML=(g.nuevos||[]).map((d,i)=>`<div class="gen-i"><span class="crit ${critCls(5)}">5</span><span><span class="desc">${esc(d)}</span><span class="meta">Nuevo · va en esta orden</span></span>
+     <button type="button" class="btn sm" data-gq="${i}" aria-label="Quitar">Quitar</button></div>`).join('');
   const ab=S.ord.filter(o=>o.placa===P&&!CERRADAS.includes(o.estado));
   $('gAbiertas').hidden=!ab.length; $('gAbiertas').textContent=ab.length?`Ya tiene abierta(s): ${ab.map(o=>o.id+' ('+o.especialidad+')').join(', ')}.`:'';
   if(!P){ $('gOk').disabled=true; return; }
@@ -1150,8 +1160,14 @@ function pintarGen(nuevaEsp){
   $('gCondLb').textContent=ti==='CARRETA'?'Responsable':'Conductor';
   $('gOper').textContent=operarioDe(g.esp)||'Por definir (esta especialidad no tiene responsable en el Generador)';
   $('gOk').disabled=!g.esp;
-  $('gOk').textContent=g.marcados.size?`Generar orden (${g.marcados.size})`:'Generar orden en blanco';
+  const n=g.marcados.size+(g.nuevos||[]).length;
+  $('gOk').textContent=n?`Generar orden (${n})`:'Generar orden en blanco';
 }
+function agregarNuevoGen(){ const d=$('gNuevo').value.trim(); if(!d) return;
+  S.gen.nuevos=(S.gen.nuevos||[]).concat([d.slice(0,500)]); $('gNuevo').value=''; pintarGen(); $('gNuevo').focus(); }
+$('gNuevoAdd').onclick=agregarNuevoGen;
+$('gNuevo').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); agregarNuevoGen(); } });
+$('gNuevos').addEventListener('click',e=>{ const b=e.target.closest('[data-gq]'); if(!b) return; S.gen.nuevos.splice(+b.dataset.gq,1); pintarGen(); });
 $('gList').addEventListener('change',e=>{ const c=e.target.closest('[data-gp]'); if(!c) return;
   c.checked?S.gen.marcados.add(c.dataset.gp):S.gen.marcados.delete(c.dataset.gp); pintarGen(); });
 $('gTodos').onclick=()=>pintarGen(true);
@@ -1165,9 +1181,14 @@ $('fGen').onsubmit = async e => {
     p_pendientes:lista.map(x=>x.id), p_conductor:$('gCond').value.trim()||null, p_operario:operarioDe(g.esp)||null });
   if(error){ const k=codigoDe(error); $('gErr').textContent=ERRORES[k]||(esRed(error)?'Sin señal: no se generó. Inténtalo cuando vuelva.':'No se pudo generar la orden.');
     $('gOk').disabled=false; pintarGen(); if(k==='PENDIENTE_NO_DISPONIBLE') buscarGen(); return; }
+  // 2.64: lo escrito a mano entra como trabajo de ESTA orden (el mismo camino que «+ Añadir trabajo»)
+  let fallaron=0;
+  for(const d of (g.nuevos||[])){ const r=await sb.rpc('agregar_trabajo_orden',{ p_orden:data.orden, p_descripcion:d, p_criticidad:5 }); if(r.error) fallaron++; }
   g.hecha=data.orden; await cargar();
   $('gPaso1').hidden=true; $('gPaso2').hidden=false; $('gOk').hidden=true; $('gCerrar').textContent='Listo';
-  $('gOkTxt').textContent=`${data.orden} generada · ${g.placa} · ${g.esp} · ${data.trabajos} trabajo(s). Ya la ven los técnicos.`;
+  const extra=(g.nuevos||[]).length-fallaron;
+  $('gOkTxt').textContent=`${data.orden} generada · ${g.placa} · ${g.esp} · ${data.trabajos+extra} trabajo(s)${extra?` (${extra} nuevo(s))`:''}. Ya la ven los técnicos.`
+    +(fallaron?` Ojo: ${fallaron} trabajo(s) nuevo(s) no se pudieron añadir; añádelos desde la orden con «+ Añadir trabajo».`:'');
   S.open.add(data.orden); pintarOrdenes(); toast(`${data.orden} generada.`);
 };
 $('gPdf').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,false,e.target);
@@ -1183,6 +1204,10 @@ async function cargarPend(){
   S.pend=r.data||[]; S.pendAl=Date.now(); if(S.tab==='pend') pintarPend();
 }
 function pintarPend(){
+  // 2.64: lo anotado desde la página que el Generador todavía no trae (llega en su próxima vuelta, ~5 min)
+  const rc=(S.reg||[]).filter(r=>r.tipo==='PENDIENTE'&&!r.aplicado_en);
+  $('pRecien').innerHTML=rc.length?`<div class="note" style="margin-top:10px"><b>Recién anotados (${rc.length})</b> · entran a la lista en la próxima vuelta del Generador (unos minutos).<br>`
+    +rc.slice(0,8).map(r=>`<span class="plate" style="font-size:11px">${esc(r.placa)}</span> ${esc(r.descripcion)}`).join('<br>')+`</div>`:'';
   if(!S.pend||Date.now()-S.pendAl>60000) cargarPend();
   if(!S.pend) return;
   const enOrden={}; for(const t of S.trab) if(t.pendiente_id&&t.estado==='PENDIENTE'){ const o=S.ord.find(x=>x.id===t.orden_id); if(o&&!CERRADAS.includes(o.estado)) enOrden[t.pendiente_id]=o.id; }
@@ -1223,7 +1248,7 @@ async function armarPDF(oid){
   if(ids.length){ let r=await sb.from('pendientes').select('id,primer_reporte,codigo').in('id',ids);
     if(r.error) r=await sb.from('pendientes').select('id,primer_reporte').in('id',ids);
     (r.data||[]).forEach(p=>pend[p.id]=p); }
-  const filas=ts.map(t=>({t,p:pend[t.pendiente_id]||{}})).sort((a,b)=>String(a.p.primer_reporte||'').localeCompare(String(b.p.primer_reporte||''))||String(a.t.id).localeCompare(String(b.t.id)));
+  const filas=ts.map(t=>({t,p:pend[t.pendiente_id]||{}})).sort((a,b)=>String(a.p.primer_reporte||'9999').localeCompare(String(b.p.primer_reporte||'9999'))||String(a.t.id).localeCompare(String(b.t.id)));  // 2.64: lo añadido a mano, al final
   const tracto=(o.unidad||'TRACTO').toUpperCase()!=='CARRETA', emp=S.emp||{};
   const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const X=8, W=281, wl=63, wt=166, we=23, wv=W-wl-wt-we, hs=4.6, h=4.8, y0=8;
@@ -1245,6 +1270,7 @@ async function armarPDF(oid){
     doc.setFontSize(6.2); doc.text(der[i][0],X+wl+wt+we/2,yy+h/2+1.1,{align:'center'});
     doc.setFont('helvetica',i===3?'bold':'normal'); doc.setFontSize(8.5); doc.text(String(izq[i][1]),X+wl+2,yy+h/2+1.2);
     doc.setFont('helvetica',i===3?'bold':'normal'); doc.setFontSize(7.5); doc.text(doc.splitTextToSize(String(der[i][1]),wv-2)[0]||'',X+wl+wt+we+wv/2,yy+h/2+1.1,{align:'center'}); }
+  if(tracto) cuadroAceite(doc, o.placa, X+wl+wt, y1, h);
   const cab=['ID','FECHA DE\nSOLICITUD','PLACA DEL\n'+(tracto?'TRACTO':'CARRETA'),'DESCRIPCION','CRITI-\nCIDAD','REQUERIMIENTO?\nMARCAR X','RESPONSABLE','FECHA\nINICIO','FECHA\nFINALIZADO','FIRMA'];
   const rel=[26,22,24,100,13,27,25,21,23,30], tot=rel.reduce((a,b)=>a+b,0);
   const cuerpo=filas.map(({t,p})=>[p.codigo||String(t.pendiente_id||'').replace(/^G-/,'').slice(0,8).toUpperCase(),ddmm(p.primer_reporte),o.placa,t.descripcion,String(t.criticidad),'','','','','']);
@@ -1258,6 +1284,26 @@ async function armarPDF(oid){
       doc.text('Generada desde el celular'+(o.creada_por_nombre?' por '+o.creada_por_nombre:''),8,205); doc.setTextColor(0); }});
   const cat=CODIGO(o.especialidad)||'ORDEN';
   return {doc, nombre:`OS_${o.id}_${o.placa}_${cat}.pdf`};
+}
+// 2.64: el cuadro chico de aceite de motor, igual que en la orden del Generador. Solo tractos y camiones.
+const ACE_ORDEN={OK:['BIEN',[198,239,206],[0,97,0]],PROXIMO:['PRONTO',[255,235,156],[127,96,0]],CRITICO:['CAMBIAR YA',[255,199,206],[156,0,6]],VENCIDO:['VENCIDO',[192,0,0],[255,255,255]]};
+function cuadroAceite(doc, placa, xDer, yTop, h){
+  const A=S.ace, u=A&&(A.u||[]).find(x=>x.p===placa), e=u&&ACE_ORDEN[u.s]; if(!e) return false;
+  const mil=v=>(v==null||isNaN(v))?'-':Math.round(+v).toLocaleString('en-US').replace(/,/g,' ');
+  const dm=f=>f&&String(f).length>=10?String(f).slice(8,10)+'/'+String(f).slice(5,7):'-';
+  const bw=92, x=xDer-bw, y=yTop;
+  doc.setLineWidth(0.25); doc.setDrawColor(0); doc.setFillColor(255,255,255); doc.rect(x,y,bw,3*h,'FD');
+  doc.setFillColor(...e[1]); doc.rect(x,y,bw,h,'FD');
+  doc.setTextColor(...e[2]); doc.setFont('helvetica','bold'); doc.setFontSize(7.2);
+  const r=u.r, km=r==null?'':(r>0?`Faltan ${mil(r)} km`:`Pasado ${mil(Math.abs(r))} km`);
+  doc.text('ACEITE:  '+e[0], x+1.5, y+h/2+1.1); doc.text(km+(u.pc!=null?`  (${Math.round(Math.min(100,Math.max(0,u.pc)))}%)`:''), x+bw-1.5, y+h/2+1.1, {align:'right'});
+  const rec=(u.km!=null&&u.uk!=null)?mil(u.km-u.uk)+((u.nv||0)>0?' + ≈'+mil(u.nv):'')+' km':'-';
+  doc.setTextColor(0); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+  [[`Último cambio  ${mil(u.uk)} km (${dm(u.uf)})`, `Hoy  ${mil(u.km)} km (${dm(u.ul)})`],[`Recorrió  ${rec}`, `Última semana  ${mil(u.kw)} km`]].forEach(([a,b],k)=>{
+    const yy=y+(k+1)*h; doc.text(a, x+1.5, yy+h/2+1.1); doc.text(b, x+bw-1.5, yy+h/2+1.1, {align:'right'}); });
+  doc.setLineWidth(0.1); doc.line(x,y+2*h,x+bw,y+2*h);
+  if(A.sem){ doc.setTextColor(120); doc.setFontSize(4.6); doc.text(`Aceite: semana ${A.sem}, km del reporte de combustible`, x+bw-0.7, y-0.6, {align:'right'}); doc.setTextColor(0); }
+  return true;
 }
 async function entregarPDF(oid, compartir, btn){
   const txt=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent='Armando PDF…'; }
