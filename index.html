@@ -302,7 +302,9 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
         <div id="gEspBox" hidden><label class="lb">Especialidad</label><div class="chips" id="gEsp" style="flex-wrap:wrap"></div></div>
         <div id="gListBox" hidden><label class="lb" id="gListLb">Trabajos</label><div class="gen-l" id="gList"></div>
           <div class="chips" style="margin-top:6px"><button type="button" class="chip" id="gTodos">Marcar todos</button><button type="button" class="chip" id="gNinguno">Ninguno</button></div></div>
-        <div id="gNuevosBox" hidden><label class="lb" for="gNuevo">¿Algo que no está en la lista? (2.64)</label>
+        <div id="gCompBox" hidden class="note" style="margin:0"><span id="gCompTxt"></span>
+          <div class="actions" style="justify-content:stretch;flex-wrap:wrap;margin-top:8px"><button class="btn primary" type="button" id="gComp" style="flex:1">Imprimir orden completa</button><button class="btn" type="button" id="gCompSh" style="flex:1">Compartir</button></div></div>
+        <div id="gNuevosBox" hidden><label class="lb" for="gNuevo">¿Algo que no está en la lista?</label>
           <div class="gen-l" id="gNuevos"></div>
           <div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="gNuevo" maxlength="500" placeholder="Escribe el trabajo y pulsa «Agregar»" style="flex:1">
           <button type="button" class="btn sm" id="gNuevoAdd">Agregar</button></div>
@@ -1160,6 +1162,11 @@ function pintarGen(nuevaEsp){
   $('gCondLb').textContent=ti==='CARRETA'?'Responsable':'Conductor';
   $('gOper').textContent=operarioDe(g.esp)||'Por definir (esta especialidad no tiene responsable en el Generador)';
   $('gOk').disabled=!g.esp;
+  // 2.64.1: la placa ya tiene una orden abierta de esta especialidad -> se imprime TODO junto (simbólica)
+  const ab1=g.esp&&S.ord.find(o=>o.placa===P&&!CERRADAS.includes(o.estado)&&o.especialidad===g.esp);
+  $('gCompBox').hidden=!ab1;
+  if(ab1){ const n=trDe(ab1.id).filter(t=>t.estado==='PENDIENTE').length;
+    $('gCompTxt').innerHTML=`<b>${esc(ab1.id)}</b> sigue abierta con ${n} trabajo(s) por hacer. «Imprimir orden completa» saca un solo papel con esos trabajos y lo marcado aquí (simbólica: no crea orden nueva).`; }
   const n=g.marcados.size+(g.nuevos||[]).length;
   $('gOk').textContent=n?`Generar orden (${n})`:'Generar orden en blanco';
 }
@@ -1192,6 +1199,16 @@ $('fGen').onsubmit = async e => {
   S.open.add(data.orden); pintarOrdenes(); toast(`${data.orden} generada.`);
 };
 $('gPdf').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,false,e.target);
+function ordenCompleta(){
+  const g=S.gen, ab=S.ord.find(o=>o.placa===g.placa&&!CERRADAS.includes(o.estado)&&o.especialidad===g.esp); if(!ab) return null;
+  const hoy=new Date(), dd=String(hoy.getDate()).padStart(2,'0')+String(hoy.getMonth()+1).padStart(2,'0');
+  const ts=trDe(ab.id).filter(t=>t.estado==='PENDIENTE')
+    .concat(g.pend.filter(x=>x.especialidad===g.esp&&g.marcados.has(x.id)).map((x,i)=>({id:'N'+i,pendiente_id:x.id,descripcion:x.descripcion,criticidad:x.criticidad,estado:'PENDIENTE'})))
+    .concat((g.nuevos||[]).map((d,i)=>({id:'M'+i,pendiente_id:null,descripcion:d,criticidad:5,estado:'PENDIENTE'})));
+  return {o:{...ab, id:`PROV-${dd}-${ab.id.slice(-5)}`, conductor:$('gCond').value.trim()||ab.conductor, emitida:hoy.toISOString()}, ts};
+}
+$('gComp').onclick=e=>{ const a=ordenCompleta(); if(a) entregarPDF(a.o.id,false,e.target,a); };
+$('gCompSh').onclick=e=>{ const a=ordenCompleta(); if(a) entregarPDF(a.o.id,true,e.target,a); };
 $('gShare').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,true,e.target);
 
 // ---------- Pendientes (solo administradores, 2.61.2) ----------
@@ -1240,10 +1257,11 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkCAYAAADDhn8LAA
 function cargarScript(src){ return new Promise((ok,mal)=>{ const a=document.createElement('script'); a.src=src; a.onload=ok; a.onerror=()=>mal(new Error('No se pudo cargar el PDF')); document.head.appendChild(a); }); }
 async function libsPDF(){ if(!window.jspdf) await cargarScript(PDF_LIBS[0]); if(!window.jspdf.jsPDF.API.autoTable) await cargarScript(PDF_LIBS[1]); }
 const COLOR_CRIT = c => c<=4?[146,208,80]:c<=5.5?[255,255,0]:c<=7.9?[255,192,0]:[255,0,0];
-async function armarPDF(oid){
+async function armarPDF(oid, armada){
   await libsPDF();
-  const o=S.ord.find(x=>x.id===oid); if(!o) throw new Error('No encuentro la orden '+oid);
-  const ts=trDe(oid).filter(t=>t.estado!=='NO_TRABAJADO'&&t.estado!=='ANULADO');
+  // 2.64.1: «armada» = {o, ts} para la orden completa simbólica (lo abierto + lo nuevo)
+  const o=armada?armada.o:S.ord.find(x=>x.id===oid); if(!o) throw new Error('No encuentro la orden '+oid);
+  const ts=armada?armada.ts:trDe(oid).filter(t=>t.estado!=='NO_TRABAJADO'&&t.estado!=='ANULADO');
   const ids=ts.map(t=>t.pendiente_id).filter(Boolean), pend={};
   if(ids.length){ let r=await sb.from('pendientes').select('id,primer_reporte,codigo').in('id',ids);
     if(r.error) r=await sb.from('pendientes').select('id,primer_reporte').in('id',ids);
@@ -1305,10 +1323,10 @@ function cuadroAceite(doc, placa, xDer, yTop, h){
   if(A.sem){ doc.setTextColor(120); doc.setFontSize(4.6); doc.text(`Aceite: semana ${A.sem}, km del reporte de combustible`, x+bw-0.7, y-0.6, {align:'right'}); doc.setTextColor(0); }
   return true;
 }
-async function entregarPDF(oid, compartir, btn){
+async function entregarPDF(oid, compartir, btn, armada){
   const txt=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent='Armando PDF…'; }
   try{
-    const {doc,nombre}=await armarPDF(oid);
+    const {doc,nombre}=await armarPDF(oid, armada);
     if(compartir){
       const blob=doc.output('blob'), f=new File([blob],nombre,{type:'application/pdf'});
       if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f],title:nombre}); }catch(_){} }
