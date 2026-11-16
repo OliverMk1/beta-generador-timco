@@ -303,9 +303,10 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
         <div id="gListBox" hidden><label class="lb" id="gListLb">Trabajos</label><div class="gen-l" id="gList"></div>
           <div class="chips" style="margin-top:6px"><button type="button" class="chip" id="gTodos">Marcar todos</button><button type="button" class="chip" id="gNinguno">Ninguno</button></div></div>
         <div id="gCompBox" hidden class="note" style="margin:0"><span id="gCompTxt"></span>
-          <div class="actions" style="justify-content:stretch;flex-wrap:wrap;margin-top:8px"><button class="btn primary" type="button" id="gComp" style="flex:1">Imprimir orden completa</button><button class="btn" type="button" id="gCompSh" style="flex:1">Compartir</button></div></div>
+          <div class="actions" style="justify-content:stretch;flex-wrap:wrap;margin-top:8px"><button class="btn primary" type="button" id="gAct" style="flex:1">Meter en la orden</button><button class="btn" type="button" id="gComp" style="flex:1">Imprimir orden completa</button><button class="btn" type="button" id="gCompSh" style="flex:1">Compartir</button></div></div>
         <div id="gNuevosBox" hidden><label class="lb" for="gNuevo">¿Algo que no está en la lista?</label>
           <div class="gen-l" id="gNuevos"></div>
+          <div class="chips" id="gNuevoCrit" style="margin-top:6px"><span class="meta" style="align-self:center">Prioridad:</span><button type="button" class="chip" data-gc="3" aria-pressed="false">3</button><button type="button" class="chip" data-gc="5" aria-pressed="true">5</button><button type="button" class="chip" data-gc="8" aria-pressed="false">8</button><button type="button" class="chip" data-gc="10" aria-pressed="false">10</button></div>
           <div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="gNuevo" maxlength="500" placeholder="Escribe el trabajo y pulsa «Agregar»" style="flex:1">
           <button type="button" class="btn sm" id="gNuevoAdd">Agregar</button></div>
           <span class="meta">Va en esta misma orden como un trabajo más, y queda como pendiente nuevo de la placa.</span></div>
@@ -639,6 +640,9 @@ const esAdm = () => !!(S.me && S.me.es_admin);
 const ordMia = o => esAdm() || misEsps().includes(sinT(o.especialidad)) || S.trab.some(t=>t.orden_id===o.id&&t.cerrado_por===S.uid);
 function pintarOrdenes(){
   $('bGen').hidden=!esAdm();
+  // 2.65: el administrador ve si una orden abierta dejó fuera pendientes nuevos de su placa
+  if(esAdm()&&(!S.pend||Date.now()-S.pendAl>60000)&&!S.pendCargando){ S.pendCargando=true; cargarPend().finally(()=>{ S.pendCargando=false; }); }
+  const fuera=o=>esAdm()&&S.pend&&!CERRADAS.includes(o.estado)?S.pend.filter(p=>p.estado==='ABIERTO'&&p.placa===o.placa&&p.especialidad===o.especialidad).length:0;
   const abiertas=S.ord.filter(o=>!CERRADAS.includes(o.estado)&&ordMia(o));
   const esps=['TODAS',...new Set(abiertas.map(o=>o.especialidad).filter(Boolean))];
   if(!esps.includes(S.esp)) S.esp='TODAS';
@@ -655,6 +659,7 @@ function pintarOrdenes(){
       <span class="plate">${esc(o.placa)}</span>
       <span class="ot"><b>${esc(o.id)}</b><small>${esc(o.especialidad)} · ${esc(o.unidad||'')} · Emitida ${esc(dia(o.emitida))} · <span class="pill o-${esc(o.estado)}">${OEST[o.estado]||''}</span></small></span>
       <span class="prog">${ts.length?`${r}/${ts.length}`:regsDe(o.id).length?`${regsDe(o.id).length} anotado(s)`:'en blanco'}</span></button>
+      ${fuera(o)?`<div class="note" style="margin:0 12px 10px">⚠ <b>${fuera(o)} pendiente(s) nuevo(s)</b> de ${esc(o.placa)} (${esc(o.especialidad)}) no están en esta orden. <button class="btn primary sm" data-act="${esc(o.placa)}" data-act-esp="${esc(o.especialidad)}">Actualizar la orden</button></div>`:''}
       ${op?ts.map(t=>item(t,enCola.get(t.id))).join(''):''}
       ${op&&!ts.length&&!regsDe(o.id).length&&!CERRADAS.includes(o.estado)?`<div class="note" style="margin:0 12px 10px">Orden en blanco: no trae trabajos. Anota abajo lo que se hizo en la unidad.</div>`:''}
       ${op&&esAdm()&&ts.some(t=>t.estado==='PENDIENTE'&&!enCola.has(t.id))?`<div class="item" style="gap:8px;flex-wrap:wrap"><button class="btn primary sm" data-oc="${esc(o.id)}" data-ov="HECHO">Finalizar toda la orden</button><button class="btn sm" data-oc="${esc(o.id)}" data-ov="ANULADO">Anular toda la orden</button></div>`:''}
@@ -802,7 +807,7 @@ function pintarAux(){
 }
 const TIT = {REALIZADO:'Trabajo realizado', PENDIENTE:'Nuevo pendiente', AUXILIO:'Auxilio mecánico', ESTADIA:'Marcar en taller'};
 function abrirReg(tipo, placa, orden){
-  S.rg={tipo, orden:orden||null, files:[], acomp:false, con:[]};
+  S.rg={tipo, orden:orden||null, files:[], acomp:false, con:[], crit:5};
   const mia=esAdm()?'':(misEsps()[0]||'');
   const catOpts=`<option value="">Elige la especialidad</option>`+Object.entries(CAT).map(([k,v])=>`<option value="${k}"${k===mia?' selected':''}>${v}</option>`).join('');
   const pl=`<div><label class="lb" for="rgPlaca">Placa</label><input type="text" id="rgPlaca" list="dlFlota" autocomplete="off" value="${esc(placa||'')}" ${orden?'readonly':''} required></div>`;
@@ -817,6 +822,10 @@ function abrirReg(tipo, placa, orden){
       <div><label class="lb" for="rgEst">Estado</label><select id="rgEst"><option value="EN_CAMINO">En camino</option><option value="ATENDIDO">Atendido</option><option value="REMOLCADO">Remolcado</option></select></div>`;
   else b+=pl+`<div><label class="lb" for="rgCat">Especialidad</label><select id="rgCat">${catOpts}</select></div>
       <div><label class="lb" for="rgDesc">${tipo==='REALIZADO'?'Qué se hizo':'Qué hay que hacer'}</label><textarea id="rgDesc" required></textarea></div>
+      ${tipo==='PENDIENTE'&&!orden?`<div id="rgYa" class="note" hidden style="margin:0"></div>
+      <div><label class="lb">Prioridad</label><div class="chips" id="rgCrit">${[3,5,8,10].map(n=>`<button type="button" class="chip" data-rc="${n}" aria-pressed="${n===5}">${n}</button>`).join('')}</div>
+        <span class="meta">10: no puede salir así (frenos, dirección, luces) · 8: urgente · 5: normal · 3: puede esperar</span></div>
+      <div><label class="lb" for="rgCod">Código del checklist (opcional)</label><input type="text" id="rgCod" inputmode="numeric" maxlength="40" placeholder="Si viene de un checklist, por ejemplo 2611150700"></div>`:''}
       <div class="dos"><div><label class="lb" for="rgFecha">${tipo==='REALIZADO'?'Fecha en que se hizo':'Fecha del reporte'}</label><input type="date" id="rgFecha" value="${hoyISO()}" max="${hoyISO()}"></div>
       ${tipo==='REALIZADO'?`<div><label class="lb" for="rgAt">Quién lo hizo</label><input type="text" id="rgAt" list="dlTec" autocomplete="off" value="${esAdm()?'':esc((S.me||{}).nombre||'')}"></div>`:'<div></div>'}</div>
       ${tipo==='REALIZADO'?`<div id="rgSolo"><label class="lb">¿Lo hizo solo o acompañado?</label>
@@ -826,7 +835,20 @@ function abrirReg(tipo, placa, orden){
       <div class="fbtns"><label class="btn sm">Tomar foto<input type="file" id="rgCam" accept="image/*" capture="environment" hidden></label><label class="btn sm">Elegir de la galería<input type="file" id="rgFoto" accept="image/*,.jpg,.jpeg,.png,.heic,.heif,.webp" multiple hidden></label></div></div>`;
   $('rgT').textContent=TIT[tipo]; $('rgBody').innerHTML=b; $('rgErr').textContent=''; $('rgOk').disabled=false; $('rgOk').textContent='Guardar'; $('shReg').hidden=false;
   const alElegir=e=>{ S.rg.files=S.rg.files.concat([...e.target.files]).slice(0,MAX_FOTOS); e.target.value=''; pintarFotosReg(); };
+  // 2.65: al escribir la placa se ve lo que ya tiene, para no anotarlo dos veces
+  if(tipo==='PENDIENTE'&&!orden){ let tYa; const mira=()=>{ clearTimeout(tYa); tYa=setTimeout(mirarYa,350); }; $('rgPlaca').addEventListener('input',mira); if(placa) mirarYa(); }
   for(const id of ['rgFoto','rgCam']){ const inp=$(id); if(inp) inp.onchange=alElegir; }
+}
+async function mirarYa(){
+  const el=$('rgYa'); if(!el) return;
+  const P=sinT(($('rgPlaca')||{}).value||'').replace(/\s+/g,'');
+  if(P.length<6){ el.hidden=true; return; }
+  const r=await sb.from('pendientes').select('descripcion,especialidad,estado').eq('placa',P).in('estado',['ABIERTO','EN_ORDEN']).limit(40);
+  if(r.error||sinT(($('rgPlaca')||{}).value||'').replace(/\s+/g,'')!==P){ return; }
+  const xs=r.data||[];
+  el.hidden=false;
+  el.innerHTML=xs.length?`<b>${esc(P)} ya tiene ${xs.length} pendiente(s).</b> Revisa que no esté ya anotado:<br>`+xs.slice(0,12).map(x=>`· ${esc(x.descripcion)} <small>(${esc(x.especialidad||'')}${x.estado==='EN_ORDEN'?', en orden':''})</small>`).join('<br>')
+    :`${esc(P)} no tiene pendientes abiertos${esAdm()?'':' de tu especialidad'}.`;
 }
 function pintarFotosReg(){
   const el=$('rgFotos'); if(!el) return;
@@ -835,6 +857,7 @@ function pintarFotosReg(){
 $('rgBody').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||!S.rg) return;
   if(b.dataset.qr!==undefined){ S.rg.files.splice(+b.dataset.qr,1); pintarFotosReg(); return; }
+  if(b.dataset.rc){ S.rg.crit=+b.dataset.rc; document.querySelectorAll('#rgCrit [data-rc]').forEach(x=>x.setAttribute('aria-pressed',x===b)); return; }
   if(b.dataset.solo!==undefined){ S.rg.acomp=b.dataset.solo==='0'; if(!S.rg.acomp) S.rg.con=[]; }
   else if(b.dataset.con){ const n=b.dataset.con, i=S.rg.con.indexOf(n); i<0?S.rg.con.push(n):S.rg.con.splice(i,1); }
   else return;
@@ -869,6 +892,14 @@ $('fReg').onsubmit = async e => {
         for(const [i,b] of blobs.entries()) await subirFoto(f.fotos[i], b);
       }catch(e2){ $('rgOk').disabled=false; $('rgOk').textContent='Guardar'; return err.textContent=esRed(e2)?'Sin señal: inténtalo de nuevo.':(ERRORES[codigoDe(e2)]||'No se pudo subir la foto.'); }
     }
+    if(t==='PENDIENTE'&&!S.rg.orden){
+      q=sb.rpc('crear_pendiente',{ p_placa:placa, p_unidad:ub||null, p_especialidad:CAT[f.categoria]||f.categoria, p_descripcion:f.descripcion,
+          p_criticidad:S.rg.crit||5, p_fecha:f.fecha, p_codigo:v('rgCod')||null, p_fotos:f.fotos||[] }).then(async r=>{
+        if(r.error && (r.status===404 || /crear_pendiente|PGRST202|Could not find|does not exist/i.test((r.error.message||'')+' '+(r.error.code||'')))){ S.rg.viejo=true;
+          if(v('rgCod')) f.descripcion+=` (checklist ${v('rgCod')})`;
+          return await sb.from('registros').insert(f); }
+        S.rg.viejo=false; return r; });
+    } else
     q=sb.from('registros').insert(f).then(async r=>{
       // nube sin el paso 08: la columna fotos no existe todavía; el admin guarda sin ellas
       if(r.error && (f.fotos||f.acompanantes) && /fotos|acompanantes/i.test(r.error.message||'') && esAdm()){ delete f.fotos; delete f.acompanantes; return await sb.from('registros').insert(f); }
@@ -878,7 +909,11 @@ $('fReg').onsubmit = async e => {
   const { error } = await q;
   $('rgOk').disabled=false; $('rgOk').textContent='Guardar';
   if(error) return err.textContent = esRed(error) ? 'Sin señal: inténtalo de nuevo.' : /permission|row-level/i.test(error.message) ? (t==='AUXILIO'||t==='ESTADIA'?'Solo el administrador puede anotar esto.':'No se pudo: un trabajo hecho necesita al menos una foto.') : 'No se pudo guardar: '+error.message;
-  $('shReg').hidden=true; toast(t==='ESTADIA'?`${placa} marcada en el taller.`:t==='AUXILIO'?'Auxilio registrado.':'Anotado. Pasa a la base en la próxima vuelta de la PC.'); cargar();
+  $('shReg').hidden=true;
+  const nube=t==='PENDIENTE'&&!S.rg.orden&&!S.rg.viejo;
+  toast(t==='ESTADIA'?`${placa} marcada en el taller.`:t==='AUXILIO'?'Auxilio registrado.':nube?`Pendiente de ${placa} guardado. Ya se puede meter en una orden.`:'Anotado. Pasa a la base en la próxima vuelta de la PC.');
+  if(nube){ S.pendAl=0; if(S.tab==='pend') cargarPend(); }
+  cargar();
 };
 async function cambiarAux(id, estado){
   const { error } = await sb.from('registros').update({estado}).eq('id',id);
@@ -920,6 +955,7 @@ document.addEventListener('click',e=>{
   else if(b.dataset.pe!==undefined){ S.pEsp=b.dataset.pe; pintarPend(); }
   else if(b.dataset.pp){ const k='pp:'+b.dataset.pp; S.open.has(k)?S.open.delete(k):S.open.add(k); pintarPend(); }
   else if(b.id==='pGenNueva') abrirGen('', '');
+  else if(b.dataset.act) abrirGen(b.dataset.act, b.dataset.actEsp||'');
   else if(b.dataset.pg) abrirGen(b.dataset.pg, b.dataset.pgEsp||'');
   else if(b.dataset.v&&S.sheet){ S.sheet.res=b.dataset.v; document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b)); req(); }
   if(!b.closest('#menu') && b.id!=='bMenu') $('menu').hidden=true;
@@ -1120,7 +1156,8 @@ const CODIGO = e => sinT(e).replace(/[^A-Z]/g,'');
 const operarioDe = e => ((S.ops||{})[CODIGO(e)]||'').trim();
 const ddmm = iso => iso ? String(iso).slice(8,10)+'/'+String(iso).slice(5,7)+'/'+String(iso).slice(0,4) : '';
 $('bGen').onclick = () => abrirGen();
-function abrirGen(placa, esp){ S.gen={placa:'',pend:[],esp:esp||'',marcados:new Set(),hecha:null,nuevos:[]};
+function abrirGen(placa, esp){ S.gen={placa:'',pend:[],esp:esp||'',marcados:new Set(),hecha:null,nuevos:[],crit:5};
+  document.querySelectorAll('#gNuevoCrit [data-gc]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.gc==='5'));
   $('gPlaca').value=''; $('gNuevo').value=''; $('gErr').textContent=''; $('gPaso1').hidden=false; $('gPaso2').hidden=true;
   $('gOk').hidden=false; $('gCerrar').textContent='Cancelar'; pintarGen(); $('shGen').hidden=false;
   if(placa){ $('gPlaca').value=placa; buscarGen(); } else setTimeout(()=>$('gPlaca').focus(),50); }
@@ -1143,7 +1180,7 @@ async function buscarGen(){
 function pintarGen(nuevaEsp){
   const g=S.gen, P=g.placa;
   $('gEspBox').hidden=!P; $('gListBox').hidden=!P; $('gDatos').hidden=!P; $('gNuevosBox').hidden=!P;
-  $('gNuevos').innerHTML=(g.nuevos||[]).map((d,i)=>`<div class="gen-i"><span class="crit ${critCls(5)}">5</span><span><span class="desc">${esc(d)}</span><span class="meta">Nuevo · va en esta orden</span></span>
+  $('gNuevos').innerHTML=(g.nuevos||[]).map((x,i)=>`<div class="gen-i"><span class="crit ${critCls(x.c)}">${x.c}</span><span><span class="desc">${esc(x.d)}</span><span class="meta">Nuevo · va en esta orden</span></span>
      <button type="button" class="btn sm" data-gq="${i}" aria-label="Quitar">Quitar</button></div>`).join('');
   const ab=S.ord.filter(o=>o.placa===P&&!CERRADAS.includes(o.estado));
   $('gAbiertas').hidden=!ab.length; $('gAbiertas').textContent=ab.length?`Ya tiene abierta(s): ${ab.map(o=>o.id+' ('+o.especialidad+')').join(', ')}.`:'';
@@ -1166,14 +1203,17 @@ function pintarGen(nuevaEsp){
   const ab1=g.esp&&S.ord.find(o=>o.placa===P&&!CERRADAS.includes(o.estado)&&o.especialidad===g.esp);
   $('gCompBox').hidden=!ab1;
   if(ab1){ const n=trDe(ab1.id).filter(t=>t.estado==='PENDIENTE').length;
-    $('gCompTxt').innerHTML=`<b>${esc(ab1.id)}</b> sigue abierta con ${n} trabajo(s) por hacer. «Imprimir orden completa» saca un solo papel con esos trabajos y lo marcado aquí (simbólica: no crea orden nueva).`; }
+    $('gCompTxt').innerHTML=`<b>${esc(ab1.id)}</b> sigue abierta con ${n} trabajo(s) por hacer. <b>«Meter en la orden»</b> le suma lo marcado y lo escrito aquí: queda todo en esa misma orden, para cerrarlo en ella. «Imprimir orden completa» solo saca el papel (simbólica).`;
+    $('gAct').disabled=!(g.marcados.size+(g.nuevos||[]).length); }
   const n=g.marcados.size+(g.nuevos||[]).length;
   $('gOk').textContent=n?`Generar orden (${n})`:'Generar orden en blanco';
 }
 function agregarNuevoGen(){ const d=$('gNuevo').value.trim(); if(!d) return;
-  S.gen.nuevos=(S.gen.nuevos||[]).concat([d.slice(0,500)]); $('gNuevo').value=''; pintarGen(); $('gNuevo').focus(); }
+  S.gen.nuevos=(S.gen.nuevos||[]).concat([{d:d.slice(0,500), c:S.gen.crit||5}]); $('gNuevo').value=''; pintarGen(); $('gNuevo').focus(); }
 $('gNuevoAdd').onclick=agregarNuevoGen;
 $('gNuevo').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); agregarNuevoGen(); } });
+$('gNuevoCrit').addEventListener('click',e=>{ const b=e.target.closest('[data-gc]'); if(!b) return; S.gen.crit=+b.dataset.gc;
+  document.querySelectorAll('#gNuevoCrit [data-gc]').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
 $('gNuevos').addEventListener('click',e=>{ const b=e.target.closest('[data-gq]'); if(!b) return; S.gen.nuevos.splice(+b.dataset.gq,1); pintarGen(); });
 $('gList').addEventListener('change',e=>{ const c=e.target.closest('[data-gp]'); if(!c) return;
   c.checked?S.gen.marcados.add(c.dataset.gp):S.gen.marcados.delete(c.dataset.gp); pintarGen(); });
@@ -1190,8 +1230,8 @@ $('fGen').onsubmit = async e => {
     $('gOk').disabled=false; pintarGen(); if(k==='PENDIENTE_NO_DISPONIBLE') buscarGen(); return; }
   // 2.64: lo escrito a mano entra como trabajo de ESTA orden (el mismo camino que «+ Añadir trabajo»)
   let fallaron=0;
-  for(const d of (g.nuevos||[])){ const r=await sb.rpc('agregar_trabajo_orden',{ p_orden:data.orden, p_descripcion:d, p_criticidad:5 }); if(r.error) fallaron++; }
-  g.hecha=data.orden; await cargar();
+  for(const x of (g.nuevos||[])){ const r=await sb.rpc('agregar_trabajo_orden',{ p_orden:data.orden, p_descripcion:x.d, p_criticidad:x.c }); if(r.error) fallaron++; }
+  g.hecha=data.orden; S.pendAl=0; await cargar();
   $('gPaso1').hidden=true; $('gPaso2').hidden=false; $('gOk').hidden=true; $('gCerrar').textContent='Listo';
   const extra=(g.nuevos||[]).length-fallaron;
   $('gOkTxt').textContent=`${data.orden} generada · ${g.placa} · ${g.esp} · ${data.trabajos+extra} trabajo(s)${extra?` (${extra} nuevo(s))`:''}. Ya la ven los técnicos.`
@@ -1204,9 +1244,25 @@ function ordenCompleta(){
   const hoy=new Date(), dd=String(hoy.getDate()).padStart(2,'0')+String(hoy.getMonth()+1).padStart(2,'0');
   const ts=trDe(ab.id).filter(t=>t.estado==='PENDIENTE')
     .concat(g.pend.filter(x=>x.especialidad===g.esp&&g.marcados.has(x.id)).map((x,i)=>({id:'N'+i,pendiente_id:x.id,descripcion:x.descripcion,criticidad:x.criticidad,estado:'PENDIENTE'})))
-    .concat((g.nuevos||[]).map((d,i)=>({id:'M'+i,pendiente_id:null,descripcion:d,criticidad:5,estado:'PENDIENTE'})));
+    .concat((g.nuevos||[]).map((x,i)=>({id:'M'+i,pendiente_id:null,descripcion:x.d,criticidad:x.c,estado:'PENDIENTE'})));
   return {o:{...ab, id:`PROV-${dd}-${ab.id.slice(-5)}`, conductor:$('gCond').value.trim()||ab.conductor, emitida:hoy.toISOString()}, ts};
 }
+$('gAct').onclick=async e=>{
+  const g=S.gen, ab=S.ord.find(o=>o.placa===g.placa&&!CERRADAS.includes(o.estado)&&o.especialidad===g.esp); if(!ab) return;
+  const ids=g.pend.filter(x=>x.especialidad===g.esp&&g.marcados.has(x.id)).map(x=>x.id), b=e.target;
+  b.disabled=true; b.textContent='Actualizando…'; $('gErr').textContent='';
+  let fallo='';
+  if(ids.length){ const r=await sb.rpc('agregar_pendientes_orden',{ p_orden:ab.id, p_pendientes:ids });
+    if(r.error) fallo=(r.status===404||/agregar_pendientes_orden|PGRST202|Could not find/i.test((r.error.message||'')+' '+(r.error.code||'')))?'Falta activar «Actualizar la orden» en la nube (SQL 12).':(ERRORES[codigoDe(r.error)]||(esRed(r.error)?'Sin señal: no se actualizó.':'No se pudo actualizar la orden.')); }
+  let extra=0;
+  if(!fallo) for(const x of (g.nuevos||[])){ const r=await sb.rpc('agregar_trabajo_orden',{ p_orden:ab.id, p_descripcion:x.d, p_criticidad:x.c }); if(!r.error) extra++; }
+  b.textContent='Meter en la orden';
+  if(fallo){ $('gErr').textContent=fallo; b.disabled=false; if(/NO_DISPONIBLE|otra/.test(fallo)) buscarGen(); return; }
+  g.hecha=ab.id; S.pendAl=0; await cargar();
+  $('gPaso1').hidden=true; $('gPaso2').hidden=false; $('gOk').hidden=true; $('gCerrar').textContent='Listo';
+  $('gOkTxt').textContent=`${ab.id} actualizada · ${ids.length+extra} trabajo(s) sumado(s). Ya lo ven los técnicos; el PDF sale con todo.`;
+  S.open.add(ab.id); pintarOrdenes(); toast(`${ab.id} actualizada.`);
+};
 $('gComp').onclick=e=>{ const a=ordenCompleta(); if(a) entregarPDF(a.o.id,false,e.target,a); };
 $('gCompSh').onclick=e=>{ const a=ordenCompleta(); if(a) entregarPDF(a.o.id,true,e.target,a); };
 $('gShare').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,true,e.target);
@@ -1216,9 +1272,10 @@ $('gShare').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,true,e.target);
 // prioridad y antigüedad, y lo que ya va en una orden. Desde cada placa se genera la orden.
 S.pEsp='TODAS'; S.bPend=''; S.pend=null; S.pendAl=0;
 async function cargarPend(){
-  const r=await todo(()=>sb.from('pendientes').select('id,placa,unidad,especialidad,descripcion,criticidad,primer_reporte,estado').in('estado',['ABIERTO','EN_ORDEN']).order('id'));
+  let r=await todo(()=>sb.from('pendientes').select('id,placa,unidad,especialidad,descripcion,criticidad,primer_reporte,estado,codigo,origen,creado_por_nombre,traido_en').in('estado',['ABIERTO','EN_ORDEN']).order('id'));
+  if(r.error) r=await todo(()=>sb.from('pendientes').select('id,placa,unidad,especialidad,descripcion,criticidad,primer_reporte,estado').in('estado',['ABIERTO','EN_ORDEN']).order('id'));
   if(r.error){ if(!S.pend) $('pLista').innerHTML='<div class="empty"><b>No se pudieron traer los pendientes</b>Revisa la señal.</div>'; return; }
-  S.pend=r.data||[]; S.pendAl=Date.now(); if(S.tab==='pend') pintarPend();
+  S.pend=r.data||[]; S.pendAl=Date.now(); if(S.tab==='pend') pintarPend(); else if(S.tab==='ord') pintarOrdenes();
 }
 function pintarPend(){
   // 2.64: lo anotado desde la página que el Generador todavía no trae (llega en su próxima vuelta, ~5 min)
@@ -1245,7 +1302,7 @@ function pintarPend(){
       <span class="plate">${esc(g.pl)}</span><span class="ot"><b>${g.xs.length} pendiente(s)</b><small>${ti} · ${g.libres} sin orden${S.pEsp==='TODAS'?' · '+esc([...new Set(g.xs.map(x=>x.especialidad))].join(', ')):''}</small></span>
       <span class="crit ${critCls(g.k)}">${g.k}</span></button>
       ${op?g.xs.map(x=>`<div class="item"><span class="crit ${critCls(x.criticidad)}">${x.criticidad}</span><div class="ib"><span class="desc">${esc(x.descripcion)}</span>
-        <span class="meta"><span>${esc(x.especialidad)}</span><span>Desde ${esc(dia(x.primer_reporte))} · ${diasDesde(x.primer_reporte)} días</span>${x.estado==='EN_ORDEN'?`<span class="pill o-GENERADA">En ${esc(enOrden[x.id]||'orden')}</span>`:''}</span></div></div>`).join('')
+        <span class="meta"><span>${esc(x.especialidad)}</span><span>Desde ${esc(dia(x.primer_reporte))} · ${diasDesde(x.primer_reporte)} días</span>${x.creado_por_nombre?`<span>Añadido por ${esc(x.creado_por_nombre)}${x.traido_en?'':' · aún no en la PC'}</span>`:''}${x.codigo&&x.origen==='celular'?`<span>Checklist ${esc(x.codigo)}</span>`:''}${x.estado==='EN_ORDEN'?`<span class="pill o-GENERADA">En ${esc(enOrden[x.id]||'orden')}</span>`:''}</span></div></div>`).join('')
         +(g.libres?`<div class="item"><span></span><div><button class="btn primary sm" data-pg="${esc(g.pl)}" data-pg-esp="${esc(S.pEsp==='TODAS'?'':S.pEsp)}">Generar orden de ${esc(g.pl)}</button></div></div>`:''):''}</article>`; }).join('');
 }
 $('bPend').addEventListener('input',e=>{ S.bPend=e.target.value; pintarPend(); });
