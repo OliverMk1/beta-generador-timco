@@ -110,6 +110,22 @@ nav.tabs button{appearance:none;border:0;background:none;color:var(--muted);font
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="page"]{color:var(--steel);background:var(--surface-2)}
 nav.tabs .badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(--accent);color:var(--accent-ink);font:700 10px var(--f-mono);border-radius:999px;padding:1px 5px}
+.tal-top{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:6px}
+.tal-num{font:800 44px/1 var(--f-display);color:var(--steel);min-width:56px;text-align:center}
+.tal-top small{color:var(--muted);font-size:14px}.tal-top b{font-size:18px;display:block}
+.tal-entra{display:block;width:100%;margin:14px 0 4px;font-size:20px;padding:18px;border-radius:14px}
+.tal-card{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--warn);border-radius:12px;padding:14px;margin-top:10px}
+.tal-card.larga{border-left-color:var(--crit)}
+.tal-card .plate{font-size:20px;justify-self:start}
+.tal-card .t{font-size:14px;color:var(--muted)}.tal-card .t b{color:var(--fg)}
+.tal-sale{font-size:17px;padding:14px 16px;border-radius:12px;background:var(--ok);border-color:var(--ok);color:#fff;grid-row:1/3;grid-column:2}
+.tal-hecho{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);font-size:14px}
+.tal-hecho:first-child{border-top:0}.tal-hecho small{color:var(--muted)}
+.tal-mot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tal-mot .chip{font-size:15px;padding:12px 8px;border-radius:12px;text-align:center}
+.tal-placa{font:700 26px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:14px}
+.tal-paso{font:700 17px var(--f-display);margin:0}
+.tal-ok{font-size:19px;padding:16px;border-radius:12px}
 .sheet-bg{position:fixed;inset:0;background:rgba(10,16,24,.5);z-index:20}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:16px 16px 0 0;max-height:92%;overflow:auto}
 .sheet .wrap{padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
@@ -190,6 +206,7 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
     <section id="pAce" data-p="ace" hidden></section>
     <section id="pHist" data-p="hist" hidden></section>
     <section id="pAux" data-p="aux" hidden></section>
+    <section id="pTal" data-p="tal" hidden></section>
     <section id="pPend" data-p="pend" hidden>
       <div class="adm"><button class="btn primary" data-rg="PENDIENTE">+ Nuevo pendiente</button><button class="btn" id="pGenNueva">Generar orden</button></div>
       <div id="pRecien"></div>
@@ -204,6 +221,7 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
     <button data-tab="ace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>Aceite</button>
     <button data-tab="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Mis trabajos</button>
     <button data-tab="pend" id="tPend" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Pendientes</button>
+    <button data-tab="tal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V9l9-6 9 6v12"/><path d="M7 21v-7h10v7M7 17h10"/></svg>Taller<span class="badge" id="nTal" hidden></span></button>
     <button data-tab="aux"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Auxilios<span class="badge" id="nAux" hidden></span></button>
   </div></nav>
 </section>
@@ -249,6 +267,17 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
       <div><label class="lb" for="c2">Repite la contraseña</label><input type="password" id="c2" autocomplete="new-password" minlength="8" required></div>
       <div class="err" id="cErr" role="alert"></div>
       <div class="actions"><button class="btn" type="button" data-cerrar="clave">Cancelar</button><button class="btn primary" type="submit" id="cOk">Guardar</button></div>
+    </form>
+  </div>
+</div>
+<div id="shTal" hidden>
+  <div class="sheet-bg" data-cerrar="tal"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tlT">
+    <form class="wrap" id="fTal">
+      <h3 id="tlT">Entró al taller</h3>
+      <div id="tlBody" class="frm"></div>
+      <div class="err" id="tlErr" role="alert"></div>
+      <div class="actions"><button class="btn" type="button" data-cerrar="tal">Cancelar</button><button class="btn primary tal-ok" type="submit" id="tlOk">✅ Listo, entró</button></div>
     </form>
   </div>
 </div>
@@ -426,7 +455,7 @@ async function todo(armar){
 async function cargar(){
   try{
     const desdeReg=new Date(Date.now()-45*86400000).toISOString().slice(0,10);
-    const [o,t,tc,pb,rg,es,np] = await Promise.all([
+    const [o,t,tc,pb,rg,es,np,tm] = await Promise.all([
       todo(()=>sb.from('ordenes').select('*').like('id','OS-%').order('id')),
       todo(()=>sb.from('trabajos').select('*').like('orden_id','OS-%').order('criticidad',{ascending:false}).order('id')),
       sb.from('tecnicos').select('*'),
@@ -434,7 +463,9 @@ async function cargar(){
       sb.from('registros').select('*').gte('fecha',desdeReg).order('creado_en',{ascending:false}).limit(500),
       sb.from('estadias').select('*').eq('activo',true),
       // 2.58: notas del administrador en el plan (la nube solo se las da a los administradores).
-      sb.from('notas_plan').select('fecha,placa,nota').gte('fecha',new Date(Date.now()-21*86400000).toISOString().slice(0,10))]);
+      sb.from('notas_plan').select('fecha,placa,nota').gte('fecha',new Date(Date.now()-21*86400000).toISOString().slice(0,10)),
+      // 2.66: entradas y salidas del taller (si la nube aún no tiene el paso 13, queda vacío)
+      sb.from('taller_movimientos').select('*').gte('entro_en',new Date(Date.now()-30*86400000).toISOString()).order('entro_en',{ascending:false}).limit(400)]);
     if(o.error||t.error) throw (o.error||t.error);
     S.ord=o.data||[]; S.trab=t.data||[];
     const tecs=tc.data||[]; S.tec=Object.fromEntries(tecs.map(x=>[x.id,x.nombre]));
@@ -454,7 +485,7 @@ async function cargar(){
     S.condF=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.cf||'']));
     S.ops=(pub.flota&&pub.flota.datos&&pub.flota.datos.op)||{}; S.emp=(pub.flota&&pub.flota.datos&&pub.flota.datos.emp)||{};
     S.porPend={}; for(const x of S.trab) if(x.pendiente_id){ const a=S.porPend[x.pendiente_id]; if(!a||x.estado==='HECHO'||(x.estado==='ANULADO'&&a!=='HECHO')) S.porPend[x.pendiente_id]=x.estado; }
-    S.reg_ok=!rg.error; S.reg=rg.data||[]; S.est=es.data||[];
+    S.reg_ok=!rg.error; S.reg=rg.data||[]; S.est=es.data||[]; S.mov=(tm&&!tm.error)?(tm.data||[]):null;
     S.notas=Object.fromEntries(((np&&!np.error&&np.data)||[]).filter(n=>n.nota).map(n=>[n.fecha+'|'+n.placa,n.nota]));
     $('dlFlota').innerHTML=Object.keys(S.flota).map(p=>`<option value="${esc(p)}">`).join('');
     $('dlTec').innerHTML=tecs.filter(x=>x.activo!==false).map(x=>`<option value="${esc(x.nombre)}">`).join('');
@@ -479,6 +510,7 @@ function suscribir(){
     .on('postgres_changes',{event:'*',schema:'public',table:'registros'},pronto)
     .on('postgres_changes',{event:'*',schema:'public',table:'estadias'},pronto)
     .on('postgres_changes',{event:'*',schema:'public',table:'notas_plan'},pronto)
+    .on('postgres_changes',{event:'*',schema:'public',table:'taller_movimientos'},pronto)
     .subscribe(st=>{ if(st==='SUBSCRIBED') live(true,'En vivo'); });
   clearInterval(sondeo); sondeo=setInterval(()=>{ cargar(); enviarCola(); }, 30000);
 }
@@ -500,8 +532,9 @@ function render(){
   $('cola').hidden=!S.cola.length; $('cola').textContent=`${S.cola.length} cierre(s) guardados en el celular, esperando señal para enviarse.`;
   const auxAct=S.reg.filter(r=>r.tipo==='AUXILIO'&&(r.estado==='EN_CAMINO'||r.estado==='REGISTRADO')).length;
   $('nAux').hidden=!auxAct; $('nAux').textContent=auxAct;
+  $('nTal').hidden=!S.est.length; $('nTal').textContent=S.est.length;
   $('tPend').hidden=!esAdm(); if(S.tab==='pend'&&!esAdm()) S.tab='plan';
-  if(S.tab==='pend') pintarPend(); else if(S.tab==='plan') pintarPlan(); else if(S.tab==='ord') pintarOrdenes(); else if(S.tab==='ace') pintarAceite(); else if(S.tab==='aux') pintarAux(); else pintarHist();
+  if(S.tab==='pend') pintarPend(); else if(S.tab==='plan') pintarPlan(); else if(S.tab==='ord') pintarOrdenes(); else if(S.tab==='ace') pintarAceite(); else if(S.tab==='aux') pintarAux(); else if(S.tab==='tal') pintarTaller(); else pintarHist();
 }
 
 // ---------- Plan del día ----------
@@ -779,7 +812,7 @@ function pintarAux(){
   if(!S.reg_ok){ el.innerHTML=`<div class="empty"><b>Todavía no está activo</b>Falta activar los auxilios en la nube (lo hace Frank desde la PC).</div>`; return; }
   let h='';
   if(adm) h+=`<div class="adm"><button class="btn primary" data-rg="REALIZADO">+ Trabajo realizado</button><button class="btn primary" data-rg="PENDIENTE">+ Nuevo pendiente</button>
-    <button class="btn primary" data-rg="AUXILIO">+ Auxilio mecánico</button><button class="btn" data-rg="ESTADIA">Marcar en taller</button></div>`;
+    <button class="btn primary" data-rg="AUXILIO">+ Auxilio mecánico</button></div>`;
   const aux=S.reg.filter(r=>r.tipo==='AUXILIO');
   const act=aux.filter(r=>r.estado==='EN_CAMINO'||r.estado==='REGISTRADO'), res=aux.filter(r=>!act.includes(r));
   h+=`<h2 class="sec">Auxilios mecánicos</h2>`;
@@ -795,7 +828,7 @@ function pintarAux(){
   h+=`<h2 class="sec">Unidades en taller (${est.length})</h2>`;
   h+= est.length ? `<div class="orden">`+est.map(e=>`<div class="per"><b><span class="plate">${esc(e.placa)}</span></b><span class="dias">${diasDesde(e.desde)} días</span>
       <small>Desde ${esc(dia(e.desde))}${e.nota?' · '+esc(e.nota):''}${adm?` · <button class="btn sm" data-sal="${esc(e.placa)}">Ya salió</button>`:''}</small></div>`).join('')+`</div>`
-    : `<div class="empty"><b>Ninguna unidad marcada</b>${adm?'Con «Marcar en taller» se ve cuántos días lleva cada una.':''}</div>`;
+    : `<div class="empty"><b>Ninguna unidad marcada</b>Se marcan en la pestaña «Taller».</div>`;
   const otros=S.reg.filter(r=>r.tipo!=='AUXILIO');
   if(adm&&otros.length){
     h+=`<h2 class="sec">Trabajos adicionales anotados (todos)</h2><div class="orden">`+otros.slice(0,60).map(r=>`<div class="item"><span class="plate" style="font-size:12px;align-self:start">${esc(r.placa)}</span><div class="ib">
@@ -926,6 +959,88 @@ async function salioDelTaller(placa){
   if(error) return toast('No se pudo: '+(esRed(error)?'sin señal':error.message));
   toast(`${placa} ya no figura en el taller.`); cargar();
 }
+// ---------- 2.66 · En taller: entra y sale con un toque ----------
+const MOTIVOS=[['🔧','Mecánica'],['⚡','Eléctrico'],['🛞','Llantas'],['🛢️','Mantenimiento'],['🧱','Carrocería'],['❄️','Thermo King'],['📋','Revisión técnica'],['❓','Otro']];
+const MOT_IC=Object.fromEntries(MOTIVOS.map(([i,n])=>[n,i]));
+function cuanto(desde, hasta){
+  const ms=Math.max(0,(hasta?new Date(hasta):new Date())-new Date(desde)), m=Math.round(ms/60000);
+  if(m<60) return `${m} min`;
+  const h=Math.floor(m/60); if(h<24) return `${h} h`;
+  const d=Math.floor(h/24), r=h%24; return `${d} día${d>1?'s':''}${r?` y ${r} h`:''}`;
+}
+function hora(ts){ const d=new Date(ts); return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
+function pintarTaller(){
+  const el=$('pTal'); if(!el) return;
+  const mov=S.mov||[], abiertos=Object.fromEntries(mov.filter(m=>!m.salio_en).map(m=>[m.placa,m]));
+  const adentro=[...S.est].map(e=>{ const m=abiertos[e.placa]||{}; return {placa:e.placa, desde:m.entro_en||e.entro_en||(e.desde+'T08:00:00'),
+      motivo:m.motivo||e.motivo||'', quien:m.entro_nombre||e.entro_nombre||'', nota:m.nota||e.nota||''}; })
+    .sort((a,b)=>String(a.desde).localeCompare(String(b.desde)));
+  let h=`<div class="tal-top"><div class="tal-num">${adentro.length}</div><div><b>${adentro.length===1?'unidad en el taller':'unidades en el taller'}</b><small>Toca el botón verde cuando una unidad salga.</small></div></div>
+    <button class="btn primary tal-entra" data-tent="1">🔧 Entró una unidad</button>`;
+  if(!adentro.length) h+=`<div class="empty"><b>El taller está vacío</b>Cuando entre una unidad, toca «Entró una unidad».</div>`;
+  for(const u of adentro){
+    const dias=(Date.now()-new Date(u.desde))/86400000;
+    h+=`<div class="tal-card${dias>=3?' larga':''}"><span class="plate">${esc(u.placa)}</span>
+      <button class="btn tal-sale" data-tsal="${esc(u.placa)}">✅ Salió</button>
+      <span class="t">${u.motivo?`${MOT_IC[u.motivo]||'🔧'} <b>${esc(u.motivo)}</b> · `:''}lleva <b>${cuanto(u.desde)}</b><br>Entró ${esc(hora(u.desde))}${u.quien?' · la metió '+esc(u.quien):''}${u.nota?'<br>📝 '+esc(u.nota):''}</span></div>`;
+  }
+  if(S.mov===null) h+=`<p class="sub" style="margin-top:14px">Falta activar el historial (paso 13 en la nube). Mientras tanto se ve solo quién está adentro.</p>`;
+  const sal=mov.filter(m=>m.salio_en).sort((a,b)=>String(b.salio_en).localeCompare(String(a.salio_en))).slice(0,30);
+  if(sal.length) h+=`<h2 class="sec">Ya salieron</h2><div class="orden">`+sal.map(m=>`<div class="tal-hecho"><span class="plate" style="font-size:13px">${esc(m.placa)}</span>
+      <span>${m.motivo?(MOT_IC[m.motivo]||'')+' '+esc(m.motivo)+' · ':''}estuvo <b>${cuanto(m.entro_en,m.salio_en)}</b><br><small>Salió ${esc(hora(m.salio_en))}${m.salio_nombre?' · '+esc(m.salio_nombre):''}</small></span><span>✅</span></div>`).join('')+`</div>`;
+  el.innerHTML=h;
+}
+function abrirEntrada(placa){
+  S.tl={motivo:''};
+  const adentro=new Set(S.est.map(e=>e.placa));
+  const hoy=(S.planes||[]).find(p=>p.f===S.dia)||{}, sug=[...new Set((hoy.u||[]).map(u=>u.p))].filter(p=>!adentro.has(p)).slice(0,8);
+  $('tlBody').innerHTML=`<p class="tal-paso">1. ¿Qué placa?</p>
+    <input type="text" id="tlPlaca" class="tal-placa" list="dlFlota" autocomplete="off" placeholder="ABC-123" value="${esc(placa||'')}" aria-label="Placa">
+    ${sug.length?`<div class="chips" style="flex-wrap:wrap">${sug.map(p=>`<button type="button" class="chip" data-tpl="${esc(p)}">${esc(p)}</button>`).join('')}</div><span class="meta">Del plan de hoy</span>`:''}
+    <p class="tal-paso">2. ¿Por qué entra? <small class="meta">(si sabes)</small></p>
+    <div class="tal-mot">${MOTIVOS.map(([i,n])=>`<button type="button" class="chip" data-tmo="${esc(n)}" aria-pressed="false">${i} ${esc(n)}</button>`).join('')}</div>
+    <input type="text" id="tlNota" maxlength="200" placeholder="Nota (opcional): espera repuesto…">`;
+  $('tlT').textContent='🔧 Entró al taller'; $('tlErr').textContent=''; $('tlOk').disabled=false; $('tlOk').textContent='✅ Listo, entró';
+  $('shTal').hidden=false; if(!placa) setTimeout(()=>$('tlPlaca').focus(),50);
+}
+$('tlBody').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.tpl){ $('tlPlaca').value=b.dataset.tpl; }
+  if(b.dataset.tmo){ S.tl.motivo = S.tl.motivo===b.dataset.tmo ? '' : b.dataset.tmo;
+    document.querySelectorAll('#tlBody [data-tmo]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.tmo===S.tl.motivo)); }
+});
+document.querySelectorAll('[data-cerrar="tal"]').forEach(b=>b.onclick=()=>$('shTal').hidden=true);
+const ERR_TAL={YA_EN_TALLER:'Esa unidad ya está en el taller.', NO_ESTA_EN_TALLER:'Esa unidad ya no figura en el taller.', NO_AUTORIZADO:'Tu usuario no puede marcar esto.', FALTA_PLACA:'Escribe la placa.'};
+const codTal = e => { const t=(e&&(e.message||e.details||''))+''; return Object.keys(ERR_TAL).find(k=>t.includes(k)); };
+const sinPaso13 = r => r.error && (r.status===404 || /PGRST202|Could not find|does not exist/i.test((r.error.message||'')+' '+(r.error.code||'')));
+$('fTal').onsubmit = async e => {
+  e.preventDefault(); const err=$('tlErr'); err.textContent='';
+  const placa=sinT($('tlPlaca').value).replace(/\s+/g,'');
+  if(!placa) return err.textContent='Escribe la placa.';
+  if(Object.keys(S.flota).length && !(placa in S.flota)) return err.textContent='Esa placa no está en la flota. Revísala.';
+  if(S.est.some(x=>x.placa===placa)) return err.textContent=`${placa} ya está en el taller.`;
+  const nota=($('tlNota').value||'').trim();
+  $('tlOk').disabled=true; $('tlOk').textContent='Guardando…';
+  let r=await sb.rpc('entrar_taller',{p_placa:placa, p_motivo:S.tl.motivo||'', p_nota:nota});
+  if(sinPaso13(r) && esAdm()) r=await sb.from('estadias').upsert({placa, desde:hoyISO(), nota:[S.tl.motivo,nota].filter(Boolean).join(' · '), activo:true});
+  $('tlOk').disabled=false; $('tlOk').textContent='✅ Listo, entró';
+  if(r.error) return err.textContent = esRed(r.error) ? 'Sin señal: inténtalo de nuevo.' : sinPaso13(r) ? 'Falta activar esta función en la nube (paso 13). Avísale al administrador.' : (ERR_TAL[codTal(r.error)]||'No se pudo guardar: '+r.error.message);
+  $('shTal').hidden=true; toast(`🔧 ${placa} entró al taller.`); cargar();
+};
+async function salirTaller(placa){
+  let r=await sb.rpc('salir_taller',{p_placa:placa});
+  if(sinPaso13(r)) r=await sb.from('estadias').update({activo:false}).eq('placa',placa);
+  if(r.error) return toast(esRed(r.error)?'Sin señal: inténtalo de nuevo.':(ERR_TAL[codTal(r.error)]||'No se pudo: '+r.error.message));
+  toast(`✅ ${placa} salió del taller.`); cargar();
+}
+$('pTal').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.tent) abrirEntrada('');
+  else if(b.dataset.tsal){ const p=b.dataset.tsal, k='tsal:'+p;
+    if(S.open.has(k)){ S.open.delete(k); salirTaller(p); }
+    else { S.open.add(k); b.textContent='¿Seguro? Toca otra vez'; b.style.background='var(--warn)'; b.style.borderColor='var(--warn)';
+      setTimeout(()=>{ if(S.open.delete(k)) pintarTaller(); },4000); } }
+});
 const confirmarSalida = p => { const k='sal:'+p; if(S.open.has(k)){ S.open.delete(k); return true; } S.open.add(k); toast(`Pulsa otra vez «Ya salió» para confirmar ${p}.`); setTimeout(()=>S.open.delete(k),5000); return false; };
 
 document.addEventListener('click',e=>{
