@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://*.supabase.co; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1F3864">
+<title>TIMCO · Tiempo en taller</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap">
+<style>
+:root{--bg:#EEF1F6;--card:#fff;--fg:#1F2937;--muted:#6B7280;--line:#E5E7EB;--azul:#1F3864;--acento:#F2A531;
+  --ok:#047857;--okf:#D1FAE5;--warn:#B45309;--warnf:#FEF3C7;--crit:#B91C1C;--critf:#FEE2E2;--steel:#2C5D8F;
+  --f-d:"Barlow Condensed",system-ui,sans-serif;--f-b:"Barlow",system-ui,sans-serif;--f-m:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0F1622;--card:#182233;--fg:#E5E7EB;--muted:#9CA3AF;--line:#273449;--azul:#16263F;
+  --okf:#123326;--ok:#5CC791;--warnf:#3A2A12;--warn:#F0B35A;--critf:#3D1B19;--crit:#FF8A80;--steel:#8FB4D9}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-b)}
+header{background:var(--azul);color:#fff;padding:16px 16px 14px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+header .wrap{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:0}
+header small{opacity:.75;letter-spacing:.08em;font-size:11px;text-transform:uppercase}
+header h1{margin:2px 0 0;font:700 28px/1.05 var(--f-d)}
+.estado{font-size:12px;opacity:.85;text-align:right}
+.estado b{display:inline-block;width:8px;height:8px;border-radius:4px;background:#5CC791;margin-right:5px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px auto 4px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 14px;font:600 14px var(--f-b);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--azul);border-color:var(--azul);color:#fff}
+.bar .sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;font:600 14px var(--f-b);cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px auto}
+.kpi{background:var(--card);border-radius:14px;padding:14px;border:1px solid var(--line)}
+.kpi b{display:block;font:700 34px/1 var(--f-d);color:var(--steel)}.kpi span{font-size:13px;color:var(--muted)}
+.kpi.rojo b{color:var(--crit)}
+h2{font:700 21px var(--f-d);margin:22px 0 8px;display:flex;align-items:baseline;gap:8px}
+h2 small{font:500 13px var(--f-b);color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.u{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:12px 14px}
+.u.m{border-left-color:var(--warn)}.u.l{border-left-color:var(--crit)}
+.u .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.plate{font:700 17px var(--f-m);letter-spacing:.06em;background:#fff;color:#111;border:2px solid #222;border-radius:5px;padding:2px 8px;white-space:nowrap}
+.dur{font:700 22px var(--f-d)}.u .dur{color:var(--ok)}.u.m .dur{color:var(--warn)}.u.l .dur{color:var(--crit)}
+.u .t{font-size:13px;color:var(--muted);margin-top:6px}.u .t b{color:var(--fg)}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;background:var(--warnf);color:var(--warn)}
+.pill.az{background:#DBEAFE;color:#1D4ED8}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.dos{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+.fila{display:grid;grid-template-columns:96px 1fr 92px;gap:10px;align-items:center;padding:6px 0;font-size:14px}
+.fila .b{height:14px;border-radius:7px;background:var(--steel);min-width:4px}
+.fila .n{text-align:right;font-weight:700;white-space:nowrap}.fila small{color:var(--muted);font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tabla{overflow-x:auto}
+input[type=search],input[type=password]{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);font:16px var(--f-b);padding:10px 12px}
+.vacio{text-align:center;color:var(--muted);padding:26px;background:var(--card);border:1px dashed var(--line);border-radius:12px}
+.login{max-width:380px;margin:60px auto;background:var(--card);border-radius:16px;padding:24px;border:1px solid var(--line)}
+.login h2{margin:0 0 6px}.login p{color:var(--muted);margin:0 0 14px}
+.err{color:var(--crit);min-height:1.2em;margin-top:8px;font-size:14px}
+.prim{background:var(--acento);border-color:var(--acento);color:#1F2937;width:100%;margin-top:10px;padding:12px;font-size:16px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:24px 16px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.dos{grid-template-columns:1fr}.kpi b{font-size:28px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div><small>TIMCO · Mantenimiento</small><h1>Tiempo en taller</h1></div>
+  <div class="estado" id="estado"></div></div></header>
+
+<main class="wrap">
+  <section id="vLogin" class="login" hidden>
+    <h2>🔒 Tablero del taller</h2>
+    <p>Solo lectura. Escribe la clave del tablero que te dio Mantenimiento.</p>
+    <form id="fLogin"><input type="password" id="clave" autocomplete="current-password" placeholder="Clave del tablero" aria-label="Clave del tablero" required>
+      <button class="btn prim" type="submit" id="bEntrar">Entrar</button><div class="err" id="err" role="alert"></div></form>
+  </section>
+
+  <section id="vTablero" hidden>
+    <div class="bar" role="group" aria-label="Periodo">
+      <span style="font-weight:600">Periodo:</span>
+      <button class="chip" data-d="7">7 días</button><button class="chip" data-d="30" aria-pressed="true">30 días</button><button class="chip" data-d="90">90 días</button>
+      <span class="sp"></span><button class="btn" id="bCsv">⬇ Descargar Excel</button><button class="btn" id="bSalir">Salir</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <h2>🔧 Ahora en el taller <small id="nAdentro"></small></h2>
+    <div id="adentro"></div>
+    <div class="dos">
+      <div><h2>⏱️ Las que más tiempo pasaron <small>en el periodo</small></h2><div class="panel" id="top"></div></div>
+      <div><h2>🧰 Por qué entran <small>visitas</small></h2><div class="panel" id="motivos"></div></div>
+    </div>
+    <h2>📜 Entradas y salidas <small>del periodo</small></h2>
+    <input type="search" id="buscar" placeholder="Buscar placa o motivo" aria-label="Buscar placa o motivo">
+    <div class="panel tabla" style="margin-top:8px" id="historial"></div>
+  </section>
+</main>
+<footer>Datos en vivo de Beta Taller · se actualiza solo cada minuto · TIMCO</footer>
+
+<script>
+const URL_NUBE='https://byjgrhjklojtnnwcspgx.supabase.co', LLAVE='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5amdyaGprbG9qdG5ud2NzcGd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTM4OTksImV4cCI6MjEwNzk4OTg5OX0.-W_oPuKIzhIRHS8HhZkpy5mrD0JTYOyMX4eBOmGN2qE';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const guarda={get(){try{return localStorage.getItem('tablero_clave')||''}catch(_){return ''}},
+              set(v){try{v?localStorage.setItem('tablero_clave',v):localStorage.removeItem('tablero_clave')}catch(_){}}};
+const ST={clave:guarda.get(), dias:30, datos:null, q:''};
+const MOT_IC={'Mecánica':'🔧','Eléctrico':'⚡','Llantas':'🛞','Mantenimiento':'🛢️','Carrocería':'🧱','Thermo King':'❄️','Revisión técnica':'📋','Otro':'❓'};
+const TIPO={T:'Tracto',C:'Carreta'};
+function dur(h){ if(h==null||isNaN(h)) return '—'; const m=Math.round(h*60); if(m<60) return m+' min';
+  if(h<24) return Math.floor(h)+' h'+(m%60>=30&&h<10?' ½':''); const d=Math.floor(h/24), r=Math.round(h%24); return d+' d'+(r?' '+r+' h':''); }
+const horasDesde=(a,b)=>((b?new Date(b):new Date())-new Date(a))/3600000;
+const fecha=ts=>{ if(!ts) return '—'; const d=new Date(ts), hoy=new Date().toDateString()===d.toDateString();
+  return (hoy?'hoy':d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}))+' '+d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); };
+
+async function traer(){
+  const r=await fetch(URL_NUBE+'/rest/v1/rpc/tablero_taller',{method:'POST',
+    headers:{'apikey':LLAVE,'Authorization':'Bearer '+LLAVE,'Content-Type':'application/json'},
+    body:JSON.stringify({p_clave:ST.clave,p_dias:ST.dias})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){ const m=(j&&(j.message||j.hint))||''; const e=new Error(m); e.codigo=/CLAVE/.test(m)?(/SIN_CLAVE/.test(m)?'SIN':'CLAVE'):'RED'; throw e; }
+  return j;
+}
+async function cargar(){
+  try{ ST.datos=await traer(); $('estado').innerHTML=`<b></b>Actualizado ${new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'})}`; pintar(); }
+  catch(e){
+    if(e.codigo==='CLAVE'||e.codigo==='SIN'){ guarda.set(''); ST.clave=''; mostrar('login');
+      $('err').textContent = e.codigo==='SIN' ? 'El tablero todavía no tiene clave. Pídela a Mantenimiento.' : 'Clave incorrecta.'; }
+    else $('estado').textContent='Sin conexión · reintentando';
+  }
+}
+function mostrar(v){ $('vLogin').hidden=v!=='login'; $('vTablero').hidden=v!=='tablero'; }
+function pintar(){
+  const D=ST.datos||{adentro:[],visitas:[]}, ad=D.adentro||[], vi=D.visitas||[];
+  const salidas=vi.filter(v=>v.salio), prom=salidas.length?salidas.reduce((s,v)=>s+(+v.horas||0),0)/salidas.length:null;
+  const largas=ad.filter(a=>horasDesde(a.entro_en)>=72).length, total=vi.reduce((s,v)=>s+(+v.horas||0),0);
+  $('kpis').innerHTML=`<div class="kpi"><b>${ad.length}</b><span>en el taller ahora</span></div>
+    <div class="kpi${largas?' rojo':''}"><b>${largas}</b><span>llevan más de 3 días</span></div>
+    <div class="kpi"><b>${vi.length}</b><span>ingresos en ${D.dias||ST.dias} días</span></div>
+    <div class="kpi"><b>${dur(prom)}</b><span>tiempo promedio en taller</span></div>`;
+  $('nAdentro').textContent=ad.length?`${ad.length} unidad${ad.length>1?'es':''}`:'';
+  $('adentro').innerHTML=ad.length?`<div class="cards">`+ad.map(a=>{ const h=horasDesde(a.entro_en), cls=h>=72?'l':h>=24?'m':'';
+    return `<div class="u ${cls}"><div class="top"><span class="plate">${esc(a.placa)}</span><span class="dur">${dur(h)}</span></div>
+      <div class="t">${a.tipo?esc(TIPO[a.tipo]||a.tipo)+' · ':''}${a.motivo?`${MOT_IC[a.motivo]||'🔧'} <b>${esc(a.motivo)}</b>`:'Sin motivo'}<br>
+      Entró ${esc(fecha(a.entro_en))}${a.entro_nombre?' · '+esc(a.entro_nombre):''}
+      ${a.sale_en?`<br><span class="pill az">🕐 Sale ${esc(fecha(a.sale_en))}</span>`:''}</div></div>`; }).join('')+`</div>`
+    :`<div class="vacio">✅ No hay unidades en el taller en este momento.</div>`;
+  // las que más tiempo pasaron
+  const por={}; for(const v of vi){ const x=por[v.placa]||(por[v.placa]={h:0,n:0,t:v.tipo}); x.h+=(+v.horas||0); x.n++; }
+  const top=Object.entries(por).sort((a,b)=>b[1].h-a[1].h).slice(0,10), mx=top.length?top[0][1].h:1;
+  $('top').innerHTML=top.length?top.map(([p,x])=>`<div class="fila"><span class="plate" style="font-size:13px;text-align:center">${esc(p)}</span>
+      <div class="b" style="width:${Math.max(2,100*x.h/mx)}%"></div><span class="n">${dur(x.h)} <small>· ${x.n} ${x.n>1?'veces':'vez'}</small></span></div>`).join('')
+    :`<div class="vacio" style="border:0">Todavía no hay entradas en este periodo.</div>`;
+  const mo={}; for(const v of vi){ const k=v.motivo||'Sin motivo'; mo[k]=(mo[k]||0)+1; }
+  const ms=Object.entries(mo).sort((a,b)=>b[1]-a[1]), mm=ms.length?ms[0][1]:1;
+  $('motivos').innerHTML=ms.length?ms.map(([k,n])=>`<div class="fila" style="grid-template-columns:130px 1fr 40px"><span>${MOT_IC[k]||'•'} ${esc(k)}</span>
+      <div class="b" style="width:${Math.max(2,100*n/mm)}%;background:var(--acento)"></div><span class="n">${n}</span></div>`).join('')
+    :`<div class="vacio" style="border:0">Sin datos.</div>`;
+  const q=ST.q.trim().toUpperCase(), hs=vi.filter(v=>!q||(v.placa+' '+(v.motivo||'')).toUpperCase().includes(q));
+  $('historial').innerHTML=hs.length?`<table><tr><th>Placa</th><th>Motivo</th><th>Entró</th><th>Salió</th><th>Tiempo</th><th>Marcó</th></tr>`+
+    hs.map(v=>`<tr><td><span class="plate" style="font-size:12px">${esc(v.placa)}</span></td><td>${esc(v.motivo||'—')}</td><td>${esc(fecha(v.entro_en))}</td>
+      <td>${v.salio?esc(fecha(v.hasta)):'<span class="pill">sigue adentro</span>'}</td><td><b>${dur(+v.horas)}</b></td>
+      <td>${esc(v.entro_nombre||'')}${v.salio_nombre&&v.salio_nombre!==v.entro_nombre?' / '+esc(v.salio_nombre):''}</td></tr>`).join('')+`</table>`
+    :`<div class="vacio" style="border:0">Nada que mostrar.</div>`;
+  mostrar('tablero');
+}
+function csv(){
+  const vi=(ST.datos&&ST.datos.visitas)||[], q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  const filas=[['Placa','Tipo','Motivo','Entró','Salió','Horas en taller','Metió','Sacó']].concat(vi.map(v=>[v.placa,TIPO[v.tipo]||'',v.motivo||'',
+    new Date(v.entro_en).toLocaleString('es-PE'), v.salio?new Date(v.hasta).toLocaleString('es-PE'):'sigue adentro', String(v.horas).replace('.',','), v.entro_nombre||'', v.salio_nombre||'']));
+  const b=new Blob(['﻿'+filas.map(f=>f.map(q).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`tiempo_en_taller_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+$('fLogin').onsubmit=async e=>{ e.preventDefault(); $('err').textContent=''; ST.clave=$('clave').value; $('bEntrar').disabled=true;
+  try{ ST.datos=await traer(); guarda.set(ST.clave); $('clave').value=''; pintar(); $('estado').innerHTML='<b></b>En vivo'; }
+  catch(er){ $('err').textContent = er.codigo==='CLAVE' ? 'Clave incorrecta.' : er.codigo==='SIN' ? 'El tablero todavía no tiene clave. Pídela a Mantenimiento.' : 'Sin conexión. Inténtalo de nuevo.'; }
+  $('bEntrar').disabled=false; };
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ ST.dias=+b.dataset.d; document.querySelectorAll('[data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b)); cargar(); });
+$('buscar').oninput=e=>{ ST.q=e.target.value; pintar(); };
+$('bCsv').onclick=csv;
+$('bSalir').onclick=()=>{ guarda.set(''); ST.clave=''; ST.datos=null; mostrar('login'); $('estado').textContent=''; };
+setInterval(()=>{ if(ST.clave&&!$('vTablero').hidden) cargar(); }, 60000);
+setInterval(()=>{ if(ST.datos&&!$('vTablero').hidden) pintar(); }, 30000);
+if(ST.clave) cargar(); else mostrar('login');
+</script>
+</body>
+</html>
