@@ -118,7 +118,16 @@ nav.tabs .badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(
 .tal-card.larga{border-left-color:var(--crit)}
 .tal-card .plate{font-size:20px;justify-self:start}
 .tal-card .t{font-size:14px;color:var(--muted)}.tal-card .t b{color:var(--fg)}
-.tal-sale{font-size:17px;padding:14px 16px;border-radius:12px;background:var(--ok);border-color:var(--ok);color:#fff;grid-row:1/3;grid-column:2}
+.tal-acc{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.tal-sale{font-size:17px;padding:13px 16px;border-radius:12px;background:var(--ok);border-color:var(--ok);color:#fff}
+.tal-edit{font-size:14px;padding:8px 12px;border-radius:10px}
+.tal-disp{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center;border-radius:16px;padding:16px 18px;margin-top:6px;background:var(--ok-bg);color:var(--ok)}
+.tal-disp.d-warn{background:var(--warn-bg);color:var(--warn)}.tal-disp.d-crit{background:var(--crit-bg);color:var(--crit)}
+.tal-disp small{display:block;font-size:13px;font-weight:600;color:var(--fg);opacity:.8}
+.tal-disp b{font:800 46px/1 var(--f-display)}
+.tal-disp-d{font-size:14px;color:var(--fg)}.tal-disp-d b{font:700 16px var(--f-body)}
+.tal-disp-bar{grid-column:1/-1;height:10px;border-radius:5px;background:rgba(0,0,0,.08);overflow:hidden}.tal-disp-bar span{display:block;height:100%;background:currentColor;border-radius:5px}
+#tlBody textarea{width:100%}
 .tal-hecho{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);font-size:14px}
 .tal-hecho:first-child{border-top:0}.tal-hecho small{color:var(--muted)}
 .tal-mot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -487,6 +496,7 @@ async function cargar(){
     S.planes=sem.length?sem:(S.plan?[{...S.plan,hoy:1}]:[]);
     if(!S.planes.some(p=>p.f===S.dia)){ const h=S.planes.filter(p=>p.hoy); S.dia=(h.length?h[h.length-1]:S.planes[0]||{}).f||''; }
     S.flota=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.ti]));
+    S.flotaU=(pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[];   // 2.69: para la disponibilidad
     // 2.61: para la orden que se genera en el celular
     S.cond=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.cd||'']));
     S.condF=Object.fromEntries(((pub.flota&&pub.flota.datos&&pub.flota.datos.u)||[]).map(x=>[x.p,x.cf||'']));
@@ -967,9 +977,12 @@ async function salioDelTaller(placa){
   if(error) return toast('No se pudo: '+(esRed(error)?'sin señal':error.message));
   toast(`${placa} ya no figura en el taller.`); cargar();
 }
-// ---------- 2.66 · En taller: entra y sale con un toque · 2.67: con hora ----------
+// ---------- 2.66 · En taller · 2.67: con hora · 2.69: varios motivos, editar y disponibilidad ----------
 const MOTIVOS=[['🔧','Mecánica'],['⚡','Eléctrico'],['🛞','Llantas'],['🛢️','Mantenimiento'],['🧱','Carrocería'],['❄️','Thermo King'],['📋','Revisión técnica'],['❓','Otro']];
 const MOT_IC=Object.fromEntries(MOTIVOS.map(([i,n])=>[n,i]));
+const SEP=' · ';
+const motivosDe = s => String(s||'').split(/\s*·\s*/).map(x=>x.trim()).filter(Boolean);
+const verMotivos = s => motivosDe(s).map(m=>`${MOT_IC[m]||'🔧'} <b>${esc(m)}</b>`).join(', ');
 function cuanto(desde, hasta){
   const ms=Math.max(0,(hasta?new Date(hasta):new Date())-new Date(desde)), m=Math.round(ms/60000);
   if(m<60) return `${m} min`;
@@ -980,47 +993,73 @@ const hhmm = ts => new Date(ts).toLocaleTimeString('es-PE',{hour:'2-digit',minut
 function hora(ts){ const d=new Date(ts), hoy=new Date().toDateString()===d.toDateString();
   return (hoy?'hoy':d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}))+' '+hhmm(ts); }
 const ahoraLocal = (min=0) => { const d=new Date(Date.now()+min*60000); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); };
-function pintarTaller(){
-  const el=$('pTal'); if(!el) return;
+const aLocal = ts => { const d=new Date(ts); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); };
+// Lo que está adentro (historial abierto + lo marcado a la antigua), con el id para editar
+function quienesAdentro(){
   const ya=Date.now(), mov=S.mov||[];
   const abiertos=Object.fromEntries(mov.filter(m=>!m.salio_en).map(m=>[m.placa,m]));
-  // 2.67: las que tienen la salida puesta para más tarde siguen adentro hasta esa hora
   const prog=mov.filter(m=>m.salio_en && new Date(m.salio_en)>ya);
-  const adentro=[...S.est].filter(e=>!prog.some(m=>m.placa===e.placa)).map(e=>{ const m=abiertos[e.placa]||{}; return {placa:e.placa, desde:m.entro_en||e.entro_en||(e.desde+'T08:00:00'),
-      motivo:m.motivo||e.motivo||'', quien:m.entro_nombre||e.entro_nombre||'', nota:m.nota||e.nota||''}; })
-    .concat(prog.map(m=>({placa:m.placa, desde:m.entro_en, motivo:m.motivo||'', quien:m.entro_nombre||'', nota:m.nota||'', sale:m.salio_en})))
+  return [...S.est].filter(e=>!prog.some(m=>m.placa===e.placa)).map(e=>{ const m=abiertos[e.placa]||{}; return {id:m.id||null, placa:e.placa, desde:m.entro_en||e.entro_en||(e.desde+'T08:00:00'),
+      motivo:m.motivo||e.motivo||'', quien:m.entro_nombre||e.entro_nombre||'', nota:m.nota||e.nota||'', editado:m.editado_por_nombre||''}; })
+    .concat(prog.map(m=>({id:m.id, placa:m.placa, desde:m.entro_en, motivo:m.motivo||'', quien:m.entro_nombre||'', nota:m.nota||'', sale:m.salio_en, editado:m.editado_por_nombre||''})))
     .sort((a,b)=>String(a.desde).localeCompare(String(b.desde)));
-  S.adentro=adentro;
-  let h=`<div class="tal-top"><div class="tal-num">${adentro.length}</div><div><b>${adentro.length===1?'unidad en el taller':'unidades en el taller'}</b><small>Toca el botón verde cuando una unidad salga.</small></div></div>
-    <button class="btn primary tal-entra" data-tent="1">🔧 Entró una unidad</button>`;
+}
+// Disponibilidad: activas (tractos, camiones y carretas; sin equipos ni inactivas) menos las que están en taller
+function disponibilidad(adentro){
+  const act=new Set((S.flotaU||[]).filter(u=>(u.a===undefined||+u.a===1)&&!+u.eq).map(u=>u.p));
+  if(!act.size) return null;
+  const tal=new Set(adentro.map(a=>a.placa).filter(p=>act.has(p))).size;
+  return {act:act.size, tal, pct:Math.round(1000*(act.size-tal)/act.size)/10};
+}
+function pintarTaller(){
+  const el=$('pTal'); if(!el) return;
+  const ya=Date.now(), mov=S.mov||[], adentro=quienesAdentro(); S.adentro=adentro;
+  const dp=disponibilidad(adentro);
+  let h='';
+  if(dp){ const c=dp.pct>=95?'d-ok':dp.pct>=90?'d-warn':'d-crit';
+    h+=`<div class="tal-disp ${c}"><div><small>Disponibilidad de la flota</small><b>${dp.pct.toLocaleString('es-PE')} %</b></div>
+      <div class="tal-disp-d"><b>${dp.act-dp.tal}</b> de ${dp.act} unidades operativas<br><b>${dp.tal}</b> en taller</div>
+      <div class="tal-disp-bar"><span style="width:${dp.pct}%"></span></div></div>`; }
+  h+=`<button class="btn primary tal-entra" data-tent="1">🔧 Entró una unidad</button>`;
   if(!adentro.length) h+=`<div class="empty"><b>El taller está vacío</b>Cuando entre una unidad, toca «Entró una unidad».</div>`;
+  else h+=`<h2 class="sec">En el taller ahora (${adentro.length})</h2>`;
   for(const u of adentro){
     const dias=(ya-new Date(u.desde))/86400000;
     h+=`<div class="tal-card${dias>=3?' larga':''}${u.sale?' sale':''}"><span class="plate">${esc(u.placa)}</span>
-      <button class="btn tal-sale${u.sale?' cambia':''}" data-tsal="${esc(u.placa)}">${u.sale?'🕐 Cambiar salida':'✅ Salió'}</button>
-      <span class="t">${u.sale?`<span class="tal-prog">🕐 Sale ${esc(hora(u.sale))} (en ${cuanto(new Date(),u.sale)})</span><br>`:''}${u.motivo?`${MOT_IC[u.motivo]||'🔧'} <b>${esc(u.motivo)}</b> · `:''}lleva <b>${cuanto(u.desde)}</b><br>Entró ${esc(hora(u.desde))}${u.quien?' · la metió '+esc(u.quien):''}${u.nota?'<br>📝 '+esc(u.nota):''}</span></div>`;
+      <div class="tal-acc"><button class="btn tal-sale${u.sale?' cambia':''}" data-tsal="${esc(u.placa)}">${u.sale?'🕐 Cambiar salida':'✅ Salió'}</button>
+        ${u.id?`<button class="btn tal-edit" data-tedi="${esc(u.placa)}">✏️ Editar</button>`:''}</div>
+      <span class="t">${u.sale?`<span class="tal-prog">🕐 Sale ${esc(hora(u.sale))} (en ${cuanto(new Date(),u.sale)})</span><br>`:''}${u.motivo?verMotivos(u.motivo)+' · ':''}lleva <b>${cuanto(u.desde)}</b><br>Entró ${esc(hora(u.desde))}${u.quien?' · la metió '+esc(u.quien):''}${u.nota?'<br>📝 '+esc(u.nota):''}${u.editado?`<br><small>✏️ editado por ${esc(u.editado)}</small>`:''}</span></div>`;
   }
   if(S.mov===null) h+=`<p class="sub" style="margin-top:14px">Falta activar el historial (paso 13 en la nube). Mientras tanto se ve solo quién está adentro.</p>`;
   const sal=mov.filter(m=>m.salio_en && new Date(m.salio_en)<=ya).sort((a,b)=>String(b.salio_en).localeCompare(String(a.salio_en))).slice(0,30);
   if(sal.length) h+=`<h2 class="sec">Ya salieron</h2><div class="orden">`+sal.map(m=>`<div class="tal-hecho"><span class="plate" style="font-size:13px">${esc(m.placa)}</span>
-      <span>${m.motivo?(MOT_IC[m.motivo]||'')+' '+esc(m.motivo)+' · ':''}estuvo <b>${cuanto(m.entro_en,m.salio_en)}</b><br><small>Salió ${esc(hora(m.salio_en))}${m.salio_nombre?' · '+esc(m.salio_nombre):''}</small></span><span>✅</span></div>`).join('')+`</div>`;
+      <span>${m.motivo?verMotivos(m.motivo)+' · ':''}estuvo <b>${cuanto(m.entro_en,m.salio_en)}</b><br><small>Salió ${esc(hora(m.salio_en))}${m.salio_nombre?' · '+esc(m.salio_nombre):''}</small></span><span>✅</span></div>`).join('')+`</div>`;
   el.innerHTML=h;
 }
-// Botones de hora: minutos respecto de ahora (negativo = antes). 'otra' abre el reloj.
+// Recarga liviana: solo lo del taller (no las 1000 órdenes), para que se sienta al instante
+async function cargarTaller(){
+  try{
+    const [es,tm]=await Promise.all([sb.from('estadias').select('*').eq('activo',true),
+      sb.from('taller_movimientos').select('*').gte('entro_en',new Date(Date.now()-30*86400000).toISOString()).order('entro_en',{ascending:false}).limit(400)]);
+    if(!es.error) S.est=es.data||[]; S.mov=(tm&&!tm.error)?(tm.data||[]):S.mov;
+  }catch(_){}
+  render();
+}
 const chipsHora = (lista, sel) => `<div class="tal-hora">${lista.map(([m,t])=>`<button type="button" class="chip" data-tcu="${m}" aria-pressed="${String(m)===String(sel)}">${t}</button>`).join('')}</div>`;
+const chipsMotivo = sel => `<div class="tal-mot">${MOTIVOS.map(([i,n])=>`<button type="button" class="chip" data-tmo="${esc(n)}" aria-pressed="${sel.includes(n)}">${i} ${esc(n)}</button>`).join('')}</div>`;
 function abrirEntrada(placa){
-  S.tl={modo:'ent', motivo:'', cu:0};
+  S.tl={modo:'ent', motivos:[], cu:0};
   const adentro=new Set((S.adentro||S.est).map(e=>e.placa));
   const hoy=(S.planes||[]).find(p=>p.f===S.dia)||{}, sug=[...new Set((hoy.u||[]).map(u=>u.p))].filter(p=>!adentro.has(p)).slice(0,8);
   $('tlBody').innerHTML=`<p class="tal-paso">1. ¿Qué placa?</p>
     <input type="text" id="tlPlaca" class="tal-placa" list="dlFlota" autocomplete="off" placeholder="ABC-123" value="${esc(placa||'')}" aria-label="Placa">
     ${sug.length?`<div class="chips" style="flex-wrap:wrap">${sug.map(p=>`<button type="button" class="chip" data-tpl="${esc(p)}">${esc(p)}</button>`).join('')}</div><span class="meta">Del plan de hoy</span>`:''}
-    <p class="tal-paso">2. ¿Por qué entra? <small class="meta">(si sabes)</small></p>
-    <div class="tal-mot">${MOTIVOS.map(([i,n])=>`<button type="button" class="chip" data-tmo="${esc(n)}" aria-pressed="false">${i} ${esc(n)}</button>`).join('')}</div>
+    <p class="tal-paso">2. ¿Por qué entra? <small class="meta">(puedes marcar varios)</small></p>
+    ${chipsMotivo([])}
     <p class="tal-paso">3. ¿Cuándo entró?</p>
     ${chipsHora([[0,'Ahora'],[-60,'Hace 1 h'],[-180,'Hace 3 h'],[-300,'Hace 5 h'],['otra','⏰ Otra hora']],0)}
-    <input type="datetime-local" id="tlHora" class="tal-reloj" hidden max="${ahoraLocal()}" value="${ahoraLocal()}" aria-label="Fecha y hora en que entró">
-    <input type="text" id="tlNota" maxlength="200" placeholder="Nota (opcional): espera repuesto…">`;
+    <input type="datetime-local" id="tlHora" class="tal-reloj" hidden value="${ahoraLocal()}" aria-label="Fecha y hora en que entró">
+    <input type="text" id="tlNota" maxlength="300" placeholder="Detalle (opcional): espera repuesto…">`;
   $('tlT').textContent='🔧 Entró al taller'; $('tlErr').textContent=''; $('tlOk').disabled=false; $('tlOk').textContent='✅ Listo, entró';
   $('shTal').hidden=false; if(!placa) setTimeout(()=>$('tlPlaca').focus(),50);
 }
@@ -1038,12 +1077,27 @@ function abrirSalida(placa){
   $('tlT').textContent='¿Cuándo sale?'; $('tlErr').textContent=''; $('tlOk').disabled=false; $('tlOk').textContent='✅ Guardar salida';
   $('shTal').hidden=false;
 }
+// 2.69: editar lo que está adentro: motivos, detalle y la hora de ingreso
+function abrirEditar(placa){
+  const u=(S.adentro||[]).find(x=>x.placa===placa); if(!u||!u.id) return;
+  S.tl={modo:'edi', placa, id:u.id, motivos:motivosDe(u.motivo), cu:'igual', desde:u.desde, sale:u.sale||null};
+  $('tlBody').innerHTML=`<div class="tal-quien"><span class="plate" style="font-size:22px">${esc(placa)}</span><small>Entró ${esc(hora(u.desde))} · lleva ${cuanto(u.desde)}</small></div>
+    <p class="tal-paso">Motivos <small class="meta">(toca para agregar o quitar)</small></p>
+    ${chipsMotivo(S.tl.motivos)}
+    <p class="tal-paso">Detalle o fallas nuevas</p>
+    <textarea id="tlNota" maxlength="300" rows="3" placeholder="Ej.: en la revisión salió fuga en la válvula">${esc(u.nota||'')}</textarea>
+    <p class="tal-paso">Hora de ingreso</p>
+    ${chipsHora([['igual','Dejar igual'],['otra','⏰ Corregir hora']],'igual')}
+    <input type="datetime-local" id="tlHora" class="tal-reloj" hidden value="${aLocal(u.desde)}" aria-label="Hora correcta de ingreso">`;
+  $('tlT').textContent='✏️ Editar ingreso'; $('tlErr').textContent=''; $('tlOk').disabled=false; $('tlOk').textContent='💾 Guardar cambios';
+  $('shTal').hidden=false;
+}
 $('tlBody').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.tpl){ $('tlPlaca').value=b.dataset.tpl; }
-  if(b.dataset.tmo){ S.tl.motivo = S.tl.motivo===b.dataset.tmo ? '' : b.dataset.tmo;
-    document.querySelectorAll('#tlBody [data-tmo]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.tmo===S.tl.motivo)); }
-  if(b.dataset.tcu!==undefined){ S.tl.cu = b.dataset.tcu==='otra' ? 'otra' : +b.dataset.tcu;
+  if(b.dataset.tmo){ const n=b.dataset.tmo, i=S.tl.motivos.indexOf(n); i<0?S.tl.motivos.push(n):S.tl.motivos.splice(i,1);
+    b.setAttribute('aria-pressed', i<0); }
+  if(b.dataset.tcu!==undefined){ const v=b.dataset.tcu; S.tl.cu = (v==='otra'||v==='igual') ? v : +v;
     document.querySelectorAll('#tlBody [data-tcu]').forEach(x=>x.setAttribute('aria-pressed', x===b));
     const r=$('tlHora'); r.hidden = S.tl.cu!=='otra'; if(!r.hidden) r.focus();
     if(S.tl.modo==='sal') $('tlOk').textContent = (S.tl.cu==='otra'||S.tl.cu<=0) ? '✅ Guardar salida' : '🕐 Guardar salida'; }
@@ -1051,53 +1105,59 @@ $('tlBody').addEventListener('click',e=>{
 document.querySelectorAll('[data-cerrar="tal"]').forEach(b=>b.onclick=()=>$('shTal').hidden=true);
 const ERR_TAL={YA_EN_TALLER:'Esa unidad ya está en el taller.', NO_ESTA_EN_TALLER:'Esa unidad ya no figura en el taller.', NO_AUTORIZADO:'Tu usuario no puede marcar esto.', FALTA_PLACA:'Escribe la placa.',
   HORA_FUTURA:'La hora de entrada no puede ser más tarde que ahora.', HORA_MUY_ANTIGUA:'Esa hora es de hace más de 30 días.', HORA_MUY_LEJANA:'La salida puede ponerse como mucho 24 horas adelante.',
-  ANTES_DE_ENTRAR:'La salida no puede ser antes de la hora en que entró.', CRUZA_CON_OTRA:'Esa hora es antes de su última salida. Revisa la hora.'};
+  ANTES_DE_ENTRAR:'La salida no puede ser antes de la hora en que entró.', CRUZA_CON_OTRA:'Esa hora es antes de su última salida. Revisa la hora.',
+  YA_SALIO:'Esa unidad ya salió: ya no se puede editar aquí.', DESPUES_DE_SALIR:'La hora de ingreso no puede ser después de su salida.', NO_EXISTE:'Ese ingreso ya no existe. Actualiza la página.'};
 const codTal = e => { const t=(e&&(e.message||e.details||''))+''; return Object.keys(ERR_TAL).find(k=>t.includes(k)); };
 const sinFuncion = r => r.error && (r.status===404 || /PGRST202|Could not find|does not exist/i.test((r.error.message||'')+' '+(r.error.code||'')));
-// La hora elegida, en el reloj de la nube. null = ahora.
 function horaElegida(){
+  if(S.tl.cu==='igual') return {iso:null};
   if(S.tl.cu==='otra'){ const v=$('tlHora').value; if(!v) return {err:'Elige la fecha y la hora.'}; return {iso:new Date(v).toISOString()}; }
   if(S.tl.cu===null) return {err:'Elige cuándo sale.'};
   return {iso: S.tl.cu ? new Date(Date.now()+S.tl.cu*60000).toISOString() : null};
 }
-async function llamarTaller(fn, args, iso){
-  let r=await sb.rpc(fn, iso?{...args, p_cuando:iso}:args);
-  return r;
-}
+const errTal = (r, paso) => esRed(r.error) ? 'Sin señal: inténtalo de nuevo.' : sinFuncion(r) ? `Falta activar esto en la nube (paso ${paso}). Avísale al administrador.` : (ERR_TAL[codTal(r.error)]||'No se pudo: '+r.error.message);
+function ocupado(si, txt){ $('tlOk').disabled=si; if(txt) $('tlOk').textContent=txt; }
 $('fTal').onsubmit = async e => {
   e.preventDefault(); const err=$('tlErr'); err.textContent='';
+  if(S.tl.enviando) return;
   const h=horaElegida(); if(h.err) return err.textContent=h.err;
   const t=h.iso?new Date(h.iso).getTime():Date.now();
+  const listo = (msg, txt) => { S.tl.enviando=false; ocupado(false, txt); $('shTal').hidden=true; toast(msg); cargarTaller(); };
+  const falla = (msg, txt) => { S.tl.enviando=false; ocupado(false, txt); err.textContent=msg; };
+  if(S.tl.modo==='edi'){
+    const nota=($('tlNota').value||'').trim();
+    if(h.iso && t>Date.now()+5*60000) return err.textContent=ERR_TAL.HORA_FUTURA;
+    if(h.iso && S.tl.sale && t>new Date(S.tl.sale).getTime()) return err.textContent=ERR_TAL.DESPUES_DE_SALIR;
+    S.tl.enviando=true; ocupado(true,'Guardando…');
+    const r=await sb.rpc('editar_taller',{p_id:S.tl.id, p_motivo:S.tl.motivos.join(SEP), p_nota:nota, p_entro:h.iso});
+    return r.error ? falla(errTal(r,16),'💾 Guardar cambios') : listo(`✏️ ${S.tl.placa} actualizada.`,'💾 Guardar cambios');
+  }
   if(S.tl.modo==='sal'){
     const placa=S.tl.placa;
     if(t>Date.now()+24*3600000) return err.textContent=ERR_TAL.HORA_MUY_LEJANA;
     if(S.tl.desde && t<new Date(S.tl.desde).getTime()) return err.textContent=ERR_TAL.ANTES_DE_ENTRAR;
-    $('tlOk').disabled=true; $('tlOk').textContent='Guardando…';
-    let r=await llamarTaller('salir_taller',{p_placa:placa},h.iso);
-    if(sinFuncion(r) && !h.iso){ r=await sb.rpc('salir_taller',{p_placa:placa}); if(sinFuncion(r)) r=await sb.from('estadias').update({activo:false}).eq('placa',placa); }
-    $('tlOk').disabled=false; $('tlOk').textContent='✅ Guardar salida';
-    if(r.error) return err.textContent = esRed(r.error) ? 'Sin señal: inténtalo de nuevo.' : (sinFuncion(r)&&h.iso) ? 'Falta activar la hora en la nube (paso 14). Por ahora elige «Ahora».' : (ERR_TAL[codTal(r.error)]||'No se pudo: '+r.error.message);
-    $('shTal').hidden=true; toast(t>Date.now()+60000 ? `🕐 ${placa} sale ${hora(t)}` : `✅ ${placa} salió del taller.`); cargar(); return;
+    S.tl.enviando=true; ocupado(true,'Guardando…');
+    let r=await sb.rpc('salir_taller', h.iso?{p_placa:placa, p_cuando:h.iso}:{p_placa:placa});
+    if(sinFuncion(r) && !h.iso) r=await sb.from('estadias').update({activo:false}).eq('placa',placa);
+    return r.error ? falla(errTal(r,14),'✅ Guardar salida') : listo(t>Date.now()+60000 ? `🕐 ${placa} sale ${hora(t)}` : `✅ ${placa} salió del taller.`,'✅ Guardar salida');
   }
   const placa=sinT($('tlPlaca').value).replace(/\s+/g,'');
   if(!placa) return err.textContent='Escribe la placa.';
   if(Object.keys(S.flota).length && !(placa in S.flota)) return err.textContent='Esa placa no está en la flota. Revísala.';
   if((S.adentro||S.est).some(x=>x.placa===placa)) return err.textContent=`${placa} ya está en el taller.`;
   if(t>Date.now()+5*60000) return err.textContent=ERR_TAL.HORA_FUTURA;
-  const nota=($('tlNota').value||'').trim();
-  $('tlOk').disabled=true; $('tlOk').textContent='Guardando…';
-  const args={p_placa:placa, p_motivo:S.tl.motivo||'', p_nota:nota};
-  let r=await llamarTaller('entrar_taller',args,h.iso);
-  if(sinFuncion(r) && !h.iso){ r=await sb.rpc('entrar_taller',args);
-    if(sinFuncion(r) && esAdm()) r=await sb.from('estadias').upsert({placa, desde:hoyISO(), nota:[S.tl.motivo,nota].filter(Boolean).join(' · '), activo:true}); }
-  $('tlOk').disabled=false; $('tlOk').textContent='✅ Listo, entró';
-  if(r.error) return err.textContent = esRed(r.error) ? 'Sin señal: inténtalo de nuevo.' : (sinFuncion(r)&&h.iso) ? 'Falta activar la hora en la nube (paso 14). Por ahora elige «Ahora».' : sinFuncion(r) ? 'Falta activar esta función en la nube (paso 13). Avísale al administrador.' : (ERR_TAL[codTal(r.error)]||'No se pudo guardar: '+r.error.message);
-  $('shTal').hidden=true; toast(h.iso?`🔧 ${placa} entró al taller (${hora(t)})`:`🔧 ${placa} entró al taller.`); cargar();
+  const nota=($('tlNota').value||'').trim(), mot=S.tl.motivos.join(SEP);
+  S.tl.enviando=true; ocupado(true,'Guardando…');
+  const args={p_placa:placa, p_motivo:mot, p_nota:nota};
+  let r=await sb.rpc('entrar_taller', h.iso?{...args, p_cuando:h.iso}:args);
+  if(sinFuncion(r) && !h.iso && esAdm()) r=await sb.from('estadias').upsert({placa, desde:hoyISO(), nota:[mot,nota].filter(Boolean).join(SEP), activo:true});
+  return r.error ? falla(errTal(r,13),'✅ Listo, entró') : listo(h.iso?`🔧 ${placa} entró al taller (${hora(t)})`:`🔧 ${placa} entró al taller.`,'✅ Listo, entró');
 };
 $('pTal').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.tent) abrirEntrada('');
   else if(b.dataset.tsal) abrirSalida(b.dataset.tsal);
+  else if(b.dataset.tedi) abrirEditar(b.dataset.tedi);
 });
 const confirmarSalida = p => { const k='sal:'+p; if(S.open.has(k)){ S.open.delete(k); return true; } S.open.add(k); toast(`Pulsa otra vez «Ya salió» para confirmar ${p}.`); setTimeout(()=>S.open.delete(k),5000); return false; };
 
