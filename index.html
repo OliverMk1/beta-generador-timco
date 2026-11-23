@@ -135,6 +135,10 @@ nav.tabs .badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(
 .tal-placa{font:700 26px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:14px}
 .tal-paso{font:700 17px var(--f-display);margin:0}
 .tal-ok{font-size:19px;padding:16px;border-radius:12px}
+.pvis{margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:visible}.pvis .chip{font-size:14px;padding:9px 4px;font-weight:600;text-align:center;justify-content:center;white-space:nowrap;margin:0}
+.sev{display:inline-block;width:10px;height:10px;border-radius:5px;margin-right:4px;background:var(--warn)}.sev.rojo{background:var(--crit)}
+.hrow{display:grid;grid-template-columns:62px 1fr;gap:4px 10px;padding:9px 12px;border-top:1px solid var(--line);font-size:14px}.hrow:first-child{border-top:0}
+.hrow .f{font:600 13px var(--f-mono);color:var(--muted)}.hrow small{grid-column:2;color:var(--muted);font-size:12px}
 .tal-hora{display:flex;flex-wrap:wrap;gap:8px}
 .tal-hora .chip{font-size:15px;padding:10px 14px;border-radius:12px}
 .tal-reloj{font-size:18px;padding:12px}
@@ -225,6 +229,7 @@ input[type=text],input[type=date],input[type=time]{width:100%;border:1px solid v
     <section id="pTal" data-p="tal" hidden></section>
     <section id="pPend" data-p="pend" hidden>
       <div class="adm"><button class="btn primary" data-rg="PENDIENTE">+ Nuevo pendiente</button><button class="btn" id="pGenNueva">Generar orden</button></div>
+      <div class="chips pvis" id="pVistas"><button class="chip" data-pv="vig" aria-pressed="true">📋 Vigentes</button><button class="chip" data-pv="his" aria-pressed="false">✅ Historial</button><button class="chip" data-pv="ale" aria-pressed="false">⚠️ Otras alertas</button></div>
       <div id="pRecien"></div>
       <input type="search" class="buscar" id="bPend" placeholder="Buscar placa o trabajo" aria-label="Buscar placa o trabajo">
       <div class="chips" id="pChips" style="flex-wrap:wrap"></div>
@@ -475,7 +480,7 @@ async function cargar(){
       todo(()=>sb.from('ordenes').select('*').like('id','OS-%').order('id')),
       todo(()=>sb.from('trabajos').select('*').like('orden_id','OS-%').order('criticidad',{ascending:false}).order('id')),
       sb.from('tecnicos').select('*'),
-      sb.from('publicaciones').select('clave,datos,actualizado'),
+      sb.from('publicaciones').select('clave,datos,actualizado').in('clave',['plan','planes','flota','aceite']),   // 2.70: historial y alertas se piden aparte
       sb.from('registros').select('*').gte('fecha',desdeReg).order('creado_en',{ascending:false}).limit(500),
       sb.from('estadias').select('*').eq('activo',true),
       // 2.58: notas del administrador en el plan (la nube solo se las da a los administradores).
@@ -1503,7 +1508,52 @@ $('gShare').onclick=e=>S.gen.hecha&&entregarPDF(S.gen.hecha,true,e.target);
 // ---------- Pendientes (solo administradores, 2.61.2) ----------
 // Los vigentes de toda la flota, que el Generador deja en la nube en cada vuelta: por placa, con su
 // prioridad y antigüedad, y lo que ya va en una orden. Desde cada placa se genera la orden.
-S.pEsp='TODAS'; S.bPend=''; S.pend=null; S.pendAl=0;
+S.pEsp='TODAS'; S.bPend=''; S.pend=null; S.pendAl=0; S.pVista='vig'; S.pubs={}; S.hEsp='TODAS'; S.aTema='TODOS';
+// 2.70: historial de lo hecho (180 días) y «Otras alertas» del checklist. Los publica el Generador; se piden solo al abrirlos.
+async function cargarPub(clave){
+  const c=S.pubs[clave]; if(c&&(c.cargando||Date.now()-c.al<300000)) return;
+  S.pubs[clave]={...(c||{}),cargando:true};
+  const r=await sb.from('publicaciones').select('datos,actualizado').eq('clave',clave).maybeSingle();
+  S.pubs[clave]={datos:(r.data&&r.data.datos)||null, act:r.data&&r.data.actualizado, al:Date.now(), err:!!r.error};
+  if(S.tab==='pend') pintarPend();
+}
+const ESP_NOM = c => CAT[c] || (c ? c.charAt(0)+c.slice(1).toLowerCase() : 'Sin categoría');
+function pintarHistorial(){
+  const P=S.pubs.historial; if(!P||!P.datos){ cargarPub('historial');
+    $('pLista').innerHTML=`<div class="empty"><b>${P&&!P.cargando&&!P.datos?'Todavía no hay historial en la nube':'Cargando historial…'}</b>${P&&!P.cargando&&!P.datos?'El Generador lo sube en su próxima vuelta.':''}</div>`; $('pChips').innerHTML=''; return; }
+  cargarPub('historial');
+  const b=sinT(S.bPend), base=(P.datos.u||[]).filter(h=>!b||sinT(h.p).includes(b)||sinT(h.x).includes(b)||sinT(h.q).includes(b));
+  const cnt={}; base.forEach(h=>cnt[h.c||'']=(cnt[h.c||'']||0)+1);
+  if(S.hEsp!=='TODAS'&&!cnt[S.hEsp]) S.hEsp='TODAS';
+  $('pChips').innerHTML=[['TODAS',base.length],...Object.entries(cnt).sort((a,b)=>b[1]-a[1])].map(([e,n])=>`<button class="chip" data-he="${esc(e)}" aria-pressed="${S.hEsp===e}">${e==='TODAS'?'Todas':esc(ESP_NOM(e))} · ${n}</button>`).join('');
+  const vis=base.filter(h=>S.hEsp==='TODAS'||(h.c||'')===S.hEsp);
+  if(!vis.length){ $('pLista').innerHTML=`<div class="empty"><b>${b?'Nada con esa búsqueda':'Sin trabajos hechos'}</b>Últimos ${P.datos.dias||180} días.</div>`; return; }
+  const porPlaca={}; vis.forEach(h=>(porPlaca[h.p]=porPlaca[h.p]||[]).push(h));
+  const grupos=Object.entries(porPlaca).map(([pl,xs])=>({pl,xs,ult:xs[0].f})).sort((a,b)=>String(b.ult).localeCompare(String(a.ult)));
+  const tope=b?grupos.length:Math.min(grupos.length,60);
+  $('pLista').innerHTML=`<div class="note" style="margin-top:10px">${vis.length} trabajos hechos en ${grupos.length} placas · últimos ${P.datos.dias||180} días${P.act?` · al ${esc(dia(P.act).replace(/\.$/,''))}`:''}.${!b&&grupos.length>tope?' Busca una placa para ver las demás.':''}</div>`+grupos.slice(0,tope).map(g=>{
+    const op=S.open.has('hp:'+g.pl);
+    return `<article class="orden"><button class="ohead" data-hp="${esc(g.pl)}" aria-expanded="${op}"><span class="plate">${esc(g.pl)}</span>
+      <span class="ot"><b>${g.xs.length} trabajo(s) hecho(s)</b><small>${g.xs[0].u==='C'?'Carreta':'Tracto'} · último ${esc(dia(g.ult))}</small></span></button>
+      ${op?`<div>`+g.xs.map(h=>`<div class="hrow"><span class="f">${esc((h.f||'').slice(8,10)+'/'+(h.f||'').slice(5,7))}</span><span>${esc(h.x)}</span>
+        <small>${esc(ESP_NOM(h.c))}${h.q?' · '+esc(h.q):''}${h.r&&h.r!==h.f?` · reportado ${esc(dia(h.r))}`:''}${h.k?' · '+esc(h.k):''}</small></div>`).join('')+`</div>`:''}</article>`; }).join('');
+}
+const TEMA_IC={Documentos:'📄',Extintor:'🧯',Llantas:'🛞',Repsol:'⛽',Seguridad:'🩹',Carga:'📦'};
+function pintarAlertas(){
+  const P=S.pubs.alertas; if(!P||!P.datos){ cargarPub('alertas');
+    $('pLista').innerHTML=`<div class="empty"><b>${P&&!P.cargando&&!P.datos?'Todavía no hay alertas en la nube':'Cargando alertas…'}</b>${P&&!P.cargando&&!P.datos?'El Generador las sube en su próxima vuelta.':''}</div>`; $('pChips').innerHTML=''; return; }
+  cargarPub('alertas');
+  const b=sinT(S.bPend), base=(P.datos.u||[]).filter(a=>!b||sinT(a.p).includes(b)||sinT(a.i).includes(b)||sinT(a.d).includes(b));
+  const cnt={}; base.forEach(a=>cnt[a.t]=(cnt[a.t]||0)+1);
+  if(S.aTema!=='TODOS'&&!cnt[S.aTema]) S.aTema='TODOS';
+  $('pChips').innerHTML=[['TODOS',base.length],...Object.entries(cnt).sort((a,b)=>b[1]-a[1])].map(([e,n])=>`<button class="chip" data-at="${esc(e)}" aria-pressed="${S.aTema===e}">${e==='TODOS'?'Todas':(TEMA_IC[e]||'⚠️')+' '+esc(e)} · ${n}</button>`).join('');
+  const vis=base.filter(a=>S.aTema==='TODOS'||a.t===S.aTema).sort((x,y)=>(x.s==='rojo'?0:1)-(y.s==='rojo'?0:1)||String(x.t).localeCompare(String(y.t))||String(x.p).localeCompare(String(y.p)));
+  if(!vis.length){ $('pLista').innerHTML=`<div class="empty"><b>${b?'Nada con esa búsqueda':'Sin alertas'}</b>Salen del último checklist de cada unidad.</div>`; return; }
+  const rojas=vis.filter(a=>a.s==='rojo').length;
+  $('pLista').innerHTML=`<div class="note" style="margin-top:10px">${vis.length} alertas del último checklist${rojas?` · <b>${rojas} en rojo</b>`:''}${P.act?` · al ${esc(dia(P.act).replace(/\.$/,''))}`:''}.</div><div class="orden">`+vis.map(a=>`<div class="item"><span class="plate" style="font-size:12px;align-self:start">${esc(a.p)}</span><div class="ib">
+      <span class="desc"><span class="sev ${a.s==='rojo'?'rojo':''}"></span>${TEMA_IC[a.t]||'⚠️'} <b>${esc(a.i)}</b>: ${esc(a.d)}</span>
+      <span class="meta"><span>${esc(a.t)}</span>${a.de?`<span>${a.v} de ${a.de} checklists</span>`:''}${a.f?`<span>desde ${esc(dia(a.f))}</span>`:''}${a.k?`<span>Checklist ${esc(a.k)}</span>`:''}</span></div></div>`).join('')+`</div>`;
+}
 async function cargarPend(){
   let r=await todo(()=>sb.from('pendientes').select('id,placa,unidad,especialidad,descripcion,criticidad,primer_reporte,estado,codigo,origen,creado_por_nombre,traido_en').in('estado',['ABIERTO','EN_ORDEN']).order('id'));
   if(r.error) r=await todo(()=>sb.from('pendientes').select('id,placa,unidad,especialidad,descripcion,criticidad,primer_reporte,estado').in('estado',['ABIERTO','EN_ORDEN']).order('id'));
@@ -1511,6 +1561,9 @@ async function cargarPend(){
   S.pend=r.data||[]; S.pendAl=Date.now(); if(S.tab==='pend') pintarPend(); else if(S.tab==='ord') pintarOrdenes();
 }
 function pintarPend(){
+  document.querySelectorAll('#pVistas [data-pv]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pv===S.pVista));
+  $('bPend').placeholder = S.pVista==='ale' ? 'Buscar placa o alerta' : 'Buscar placa o trabajo';
+  if(S.pVista!=='vig'){ $('pRecien').innerHTML=''; return S.pVista==='his'?pintarHistorial():pintarAlertas(); }
   // 2.64: lo anotado desde la página que el Generador todavía no trae (llega en su próxima vuelta, ~5 min)
   const rc=(S.reg||[]).filter(r=>r.tipo==='PENDIENTE'&&!r.aplicado_en);
   $('pRecien').innerHTML=rc.length?`<div class="note" style="margin-top:10px"><b>Recién anotados (${rc.length})</b> · entran a la lista en la próxima vuelta del Generador (unos minutos).<br>`
@@ -1539,6 +1592,11 @@ function pintarPend(){
         +(g.libres?`<div class="item"><span></span><div><button class="btn primary sm" data-pg="${esc(g.pl)}" data-pg-esp="${esc(S.pEsp==='TODAS'?'':S.pEsp)}">Generar orden de ${esc(g.pl)}</button></div></div>`:''):''}</article>`; }).join('');
 }
 $('bPend').addEventListener('input',e=>{ S.bPend=e.target.value; pintarPend(); });
+$('pPend').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.pv){ S.pVista=b.dataset.pv; pintarPend(); }
+  else if(b.dataset.he!==undefined){ S.hEsp=b.dataset.he; pintarPend(); }
+  else if(b.dataset.at!==undefined){ S.aTema=b.dataset.at; pintarPend(); }
+  else if(b.dataset.hp){ const k='hp:'+b.dataset.hp; S.open.has(k)?S.open.delete(k):S.open.add(k); pintarPend(); } });
 
 // El PDF de la orden, con el formato del Generador (A4 apaisado). Se arma con lo que hay en la nube.
 const PDF_LIBS=['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
